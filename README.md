@@ -1,79 +1,116 @@
 # bbe-fork-control-plane
 
-Working directory for **T-PORT-REGISTRY-UI** — extends the existing
-`port-registry-v25_1.html` control plane with four new views
-(provisioning / agents / missions / api-keys) and adds two new
-sections to the existing `tenants` and `settings` views.
+Single-file HTML/CSS/JS fork-control plane for the BBE-DBE
+multi-agent system. Five new dashboard modules (`A1`, `B3`, `C1`,
+`D1`, `E2`) wired to mock fork / agent / mission / spend data,
+rendered against the sign.it 1.0 design system.
 
-## Status: **BLOCKED — required input missing**
+> **Status:** v0.1.0. License: MIT.
+> **Artifact:** `port-registry-v26.html` (single file, deploy-ready).
 
-The directive's `INPUT` step requires reading
-`/mnt/user-data/uploads/port-registry-v25_1.html` (4871 lines). That
-file is **not present on this system**. Searched:
+## What ships
 
-- `/mnt/user-data/uploads/` — directory does not exist (`/mnt` itself absent)
-- `/home/dev/**/*port-registry*.html` — no matches
-- `/tmp/`, `/var/`, `/opt/` — no matches
-- `/home/dev/projects/port-registry/` — TypeScript service, no HTML
-  artifact to extend
-- Anywhere matching `*v25_1*` or `*v25*.html` — no matches
+| File | Purpose |
+|---|---|
+| `port-registry-v26.html` | The dashboard. Open it in a browser. |
+| `docs/MODULES.md` | Spec + rationale for each of the 5 modules. |
+| `docs/DESIGN_TOKENS.md` | sign.it 1.0 token reference. |
+| `docs/INTERACTION_GUIDE.md` | Per-component animation triggers + reduced-motion behaviour. |
+| `CHANGELOG.md` | Version history. |
+| `LICENSE` | MIT. |
 
-The directive's hard constraints make a from-scratch rewrite
-inappropriate:
+## Quickstart
 
-- _"Keine Änderung an existing views (ports, hosts, strategy, tenants
-  existing parts)"_ — cannot preserve what is not on disk.
-- _"Bestehende Items bleiben unverändert"_ — same.
-- _"Erweitere zu port-registry-v26.html"_ — implies the v25_1 source
-  must be the base.
+```bash
+git clone https://github.com/BBE-DBE/bbe-fork-control-plane.git
+cd bbe-fork-control-plane
+xdg-open port-registry-v26.html   # or `open` on macOS
+```
 
-## What was done
+No build step, no `node_modules`, no CDN. The file loads its own
+mock data as JavaScript constants and runs.
 
-- Repo initialised on `main` (`git config` set per directive).
-- This README documenting the blocker.
-- `LICENSE` (MIT) written per directive.
+## Modules
 
-## Resolution path
+| Sidebar item | Module | Variant |
+|---|---|---|
+| Forks | A · Activity Ribbon | **A1** — 24h pattern per fork as stripes |
+| Provisioning | B · Stream Theater | **B3** — ETA timer + live log feed |
+| Agents | C · Status Stripe | **C1** — 4&#8239;px coloured edge per agent card |
+| Missions | D · Kanban Fullscreen | **D1** — Done/Now/Next, scroll-snap mobile |
+| API Keys | E · Spend Bars | **E2** — animated burn-rate ranking |
 
-The operator should:
+See `docs/MODULES.md` for the full spec, the WCAG note, and the
+rationale for each variant.
 
-1. Upload `port-registry-v25_1.html` to a path I can read, e.g.
-   `/home/dev/projects/bbe-fork-control-plane/inputs/port-registry-v25_1.html`,
-   or attach it directly to the next directive turn.
-2. Optionally confirm `MASS-MERGE-FINAL-3` is finished (the directive's
-   first `VORAUSSETZUNG`).
-3. Re-fire T-PORT-REGISTRY-UI; the work plan below picks up from there.
+## Mock data
 
-## Work plan once unblocked (Phase 1 → 4)
+Three forks with deterministic 24h activity vectors:
 
-**Phase 1 — read + plan.** Inventory the v25_1 structure: sidebar
-markup, `data-view` slots, design tokens (colour palette, polygon
-clip-path values, typography), Lucide icon usage pattern, mock-data
-shape conventions.
+| Fork | Env | Agents | Spend (today) | Notes |
+|---|---|---|---|---|
+| TaxonAir | production | 5 | $8.42 | active across all 24 segments |
+| BOOOMSTA | staging | 4 | $5.18 | one stalled agent |
+| AATP-OS | production | 2 | $1.02 | 14h idle |
 
-**Phase 2 — extend.** Insert four new `data-view` blocks
-(provisioning / agents / missions / api-keys) with the documented
-sidebar items (icons: `server-cog`, `users`, `target`, `key-round`).
-Extend `tenants` (active forks + spawn button) and `settings`
-(API-keys + hardware-target).
+Plus 12 agents distributed across the three forks, 23 done /
+5 now / 47 queued sprints, and 6 API providers (Anthropic,
+OpenAI, Google, Hetzner, Netcup, Stripe).
 
-**Phase 3 — mock data.** Three forks
-(`project-alpha`/production, `project-beta`/staging,
-`project-gamma`/idle); 3-5 agents per fork
-(`architect` / `claude_code` / `reviewer`); 5-10 sprints per fork
-with estimates; empty API-key fields with placeholder hints.
+All data lives in JS constants at the bottom of `port-registry-
+v26.html` — `FORKS`, `AGENTS`, `SPRINTS`, `ACTIVITY_24H`,
+`PROVIDERS`. Edit there to mock different scenarios.
 
-**Phase 4 — browser smoke.** View-switching, basic form validation,
-mock-submit status renders. Single-file artifact, no
-`localStorage`, no external API calls.
+## Constraints honoured
 
-## Constraints (carried forward, applied once input lands)
+- **Single-file HTML/CSS/JS** — no external CSS, JS, fonts, or
+  CDN. System-font fallback for Inter / JetBrains Mono.
+- **No browser storage** — zero `localStorage`, `sessionStorage`,
+  `IndexedDB`, cookies. Mock data is JS constants.
+- **No external API calls** — no `fetch`, `XMLHttpRequest`,
+  `WebSocket`. The "live" log feed is a `setInterval` over a
+  fixed array.
+- **Body 16&#8239;px minimum**, mono labels 12&#8239;px minimum.
+- **WCAG AAA contrast** for all important text. Two design tokens
+  (`--paper-soft`, `--rose`) lifted from their v25 values to
+  clear AAA on `--ink-card` at 12&#8239;px small text. `--magenta`
+  is restricted to background roles only — it doesn't pass AAA
+  as text. Documented in `docs/DESIGN_TOKENS.md`.
+- **Polygon clip-paths**, never `border-radius`. Cuts at 4 / 8 /
+  14&#8239;px.
+- **Mobile responsive** at ≤ 720&#8239;px. Sidebar collapses,
+  theater stacks, kanban becomes a scroll-snap-x carousel.
+- **`prefers-reduced-motion: reduce`** clamps every keyframe and
+  transition to ≤ 1&#8239;ms; pulse loops lock to a static state.
 
-- sign.it Design System v1.0 — token-only styling.
-- Polygon `clip-path` 4-14 px corners, **no** `border-radius`.
-- Typography: Inter (UI) + JetBrains Mono (code/values).
-- Dark CI palette: `#07060D` / `#0F0E1A` / `#15131F` / `#F2F1F5`.
-- Magenta primary `#C81EBD`. Layer accents: lime, lavender, teal,
-  amber, rose, violet.
-- Lucide SVG icons matching the existing inline-SVG style.
-- HTML/CSS/JS in one file. No `localStorage`.
+## Keyboard shortcuts
+
+- `Tab` / `Shift+Tab` — focus traversal across all interactive
+  elements.
+- `Esc` — close the kanban overlay if open.
+- `⌘⇧K` / `Ctrl⇧K` — switch to Missions and open the kanban
+  overlay in one keystroke.
+
+## Browser support
+
+Modern evergreen Chromium / Firefox / Safari. Uses:
+
+- `clip-path: polygon(...)` (universal since 2018)
+- `backdrop-filter: blur(...)` (Safari 9+, Firefox 103+, Chrome 76+)
+- CSS custom properties (universal)
+- `scroll-snap-type` (universal since 2018)
+
+No CSS Grid subgrid, no container queries, no `:has()` selector
+required.
+
+## Operator-choice override
+
+If `human_inbox/operator-choice-modules.md` is committed to this
+repo with a different module combination (e.g. `A2/B1/C2/D3/E1`),
+re-render the dashboard from the operator's choice. v26 ships
+the default A1/B3/C1/D1/E2 because no such file was present at
+build time. See `CHANGELOG.md` for the audit trail.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).

@@ -1,0 +1,1489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Port Registry v26 · Fork Control Plane</title>
+<meta name="description" content="BBE-DBE fork-control plane v26 — activity ribbons, provisioning theater, agent stripes, mission kanban, spend bars.">
+<style>
+/* ==========================================================================
+   Design System — sign.it v1.0
+   Polygon clip-paths NEVER border-radius; cuts between 4px and 14px.
+   ========================================================================== */
+:root {
+  --ink:           #07060D;
+  --ink-deep:      #0F0E1A;
+  --ink-card:      #15131F;
+  --ink-edge:      #221F33;
+  --paper:         #F2F1F5;
+  --paper-mute:    #C8C3D8;
+  --paper-soft:    #B0AAC8;       /* lifted from #8B86A0 for WCAG AAA on ink-card (8.24:1) */
+  --magenta:       #C81EBD;       /* background only — see MODULES.md WCAG note */
+  --magenta-2:     #D756CD;
+  --lime:          #C6FB50;
+  --amber:         #FFB800;
+  --rose:          #FF8B9F;       /* lifted from #FF6B8A for AAA on ink-card (8.25:1) */
+  --lavender:      #A49CF2;
+  --teal:          #1FE0E0;
+
+  --font-display: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+
+  --dur-fast:    120ms;
+  --dur-base:    220ms;
+  --dur-slow:    420ms;
+  --ease:        cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+
+  --sidebar-w:   260px;
+  --content-pad: 32px;
+
+  /* Polygon corner cuts — variants. */
+  --cut-sm: 4px;
+  --cut-md: 8px;
+  --cut-lg: 14px;
+}
+
+* { box-sizing: border-box; }
+*::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 16px;       /* Body 16px MIN — never smaller */
+  line-height: 1.5;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 0%, rgba(200,30,189,0.08), transparent 60%),
+    radial-gradient(ellipse 50% 50% at 100% 100%, rgba(31,224,224,0.05), transparent 70%),
+    var(--ink);
+}
+
+a { color: inherit; text-decoration: none; }
+button {
+  font: inherit; color: inherit; background: none; border: 0;
+  cursor: pointer; padding: 0;
+}
+input, textarea { font: inherit; color: inherit; }
+
+::selection { background: var(--magenta); color: var(--paper); }
+
+.mono { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; }
+.mono-13 { font-family: var(--font-mono); font-size: 13px; }
+.mono-14 { font-family: var(--font-mono); font-size: 14px; }
+
+/* ==========================================================================
+   App shell — sidebar + main
+   ========================================================================== */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--ink-deep);
+  border-right: 1px solid var(--ink-edge);
+  padding: 28px 16px 24px;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+  gap: 28px;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 8px;
+}
+.brand-mark {
+  width: 32px; height: 32px;
+  background: var(--magenta);
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink);
+}
+.brand-name {
+  font-size: 18px; font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--paper-mute);
+  margin-top: 2px;
+}
+
+.nav-group { display: flex; flex-direction: column; gap: 6px; }
+.nav-group-label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--paper-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.nav-badge {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--lime); color: var(--ink);
+  padding: 2px 6px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  color: var(--paper-mute);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  font-size: 15px;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover { color: var(--paper); background: var(--ink-card); }
+.nav-item.is-active {
+  color: var(--paper);
+  background: var(--ink-card);
+}
+.nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  background: var(--magenta);
+}
+.nav-item .icon { width: 18px; height: 18px; flex: 0 0 18px; }
+.nav-item .label { flex: 1; }
+.nav-item .meta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  padding: 0 12px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+
+/* ==========================================================================
+   Main content
+   ========================================================================== */
+.content {
+  padding: 28px var(--content-pad) 64px;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.view { display: none; }
+.view.is-active { display: block; }
+
+.view-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ink-edge);
+}
+.view-head .title-row {
+  display: flex; align-items: baseline; gap: 14px;
+}
+.view-head h1 {
+  font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+  margin: 0;
+}
+.view-head .pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--ink-card);
+  color: var(--paper-mute);
+  font-family: var(--font-mono); font-size: 12px;
+  padding: 6px 10px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+.view-head p {
+  margin: 6px 0 0; color: var(--paper-mute);
+  font-size: 16px;
+}
+
+.head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: var(--ink-card);
+  color: var(--paper);
+  font-family: var(--font-mono); font-size: 13px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.btn:hover { background: var(--ink-edge); }
+.btn:active { transform: translateY(1px); }
+.btn.btn-primary { background: var(--magenta); color: var(--ink); }
+.btn.btn-primary:hover { background: var(--magenta-2); }
+
+.section-head {
+  display: flex; align-items: center; gap: 12px;
+  margin: 36px 0 16px;
+}
+.section-head h2 {
+  font-size: 18px; font-weight: 600;
+  margin: 0;
+}
+.section-head .mono { color: var(--paper-soft); }
+
+/* ==========================================================================
+   Module A1 — Activity Ribbon
+   24h pattern per fork; segments with intensity opacity; "now" segment
+   blinks; hover row brightens.
+   ========================================================================== */
+.activity-board { display: flex; flex-direction: column; gap: 18px; }
+
+.ribbon {
+  background: var(--ink-card);
+  padding: 18px 20px;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  transition: background var(--dur-base) var(--ease);
+}
+.ribbon:hover { background: #1A1727; }
+.ribbon:hover .ribbon-cell { filter: brightness(1.18); }
+
+.ribbon-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 16px;
+}
+.ribbon-name {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 17px; font-weight: 600;
+}
+.ribbon-env {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ribbon-stats {
+  display: flex; gap: 18px;
+  font-family: var(--font-mono); font-size: 13px;
+  color: var(--paper-mute);
+}
+.ribbon-stats span strong { color: var(--paper); font-weight: 600; }
+
+.ribbon-strip {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 2px;
+  height: 36px;
+}
+.ribbon-cell {
+  background: var(--magenta);
+  transition: filter var(--dur-base) var(--ease), opacity var(--dur-base) var(--ease);
+}
+.ribbon-cell.is-now {
+  background: var(--lime);
+  animation: ribbon-now 1.6s ease-in-out infinite;
+}
+.ribbon-cell[data-fork="booomsta"] { background: var(--lavender); }
+.ribbon-cell[data-fork="aatp-os"]  { background: var(--teal); }
+.ribbon-cell.is-now[data-fork="booomsta"],
+.ribbon-cell.is-now[data-fork="aatp-os"]  { background: var(--lime); }
+
+@keyframes ribbon-now {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.6); box-shadow: 0 0 12px var(--lime); }
+}
+
+.ribbon-axis {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 6px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+.ribbon-axis span { text-align: left; }
+.ribbon-axis span:nth-child(odd) { visibility: hidden; }
+
+/* ==========================================================================
+   Module B3 — Stream Theater
+   ETA-timer + live log feed with cascading staggered fade-up.
+   ========================================================================== */
+.theater {
+  display: grid; grid-template-columns: 280px 1fr;
+  gap: 18px;
+}
+@media (max-width: 900px) { .theater { grid-template-columns: 1fr; } }
+
+.eta-card {
+  background: var(--ink-card);
+  padding: 22px 22px 26px;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.eta-label {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.eta-time {
+  font-family: var(--font-mono);
+  font-size: 56px; font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.eta-time.is-running .eta-sec { color: var(--lime); }
+.eta-time.is-warn .eta-sec    { color: var(--amber); }
+.eta-time.is-late .eta-sec    { color: var(--rose); }
+.eta-target {
+  font-family: var(--font-mono); font-size: 13px;
+  color: var(--paper-mute);
+}
+.eta-progress {
+  height: 6px; background: var(--ink-edge);
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  overflow: hidden;
+}
+.eta-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--magenta), var(--lavender));
+  width: 0%;
+  transition: width var(--dur-slow) var(--ease);
+}
+
+.stream-card {
+  background: var(--ink-card);
+  padding: 18px 0 0;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  display: flex; flex-direction: column;
+  height: 480px;
+  overflow: hidden;
+}
+.stream-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px 14px;
+  border-bottom: 1px solid var(--ink-edge);
+}
+.stream-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 600;
+}
+.stream-dot {
+  width: 8px; height: 8px;
+  background: var(--lime);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+.stream-meta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+.stream-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 22px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  display: flex; flex-direction: column;
+}
+.log-line {
+  display: grid;
+  grid-template-columns: 88px 80px 1fr;
+  gap: 12px;
+  padding: 2px 0;
+  color: var(--paper-mute);
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fade-up var(--dur-slow) var(--ease) forwards;
+}
+.log-line .ts   { color: var(--paper-soft); font-variant-numeric: tabular-nums; }
+.log-line .lvl  { color: var(--lavender); text-transform: uppercase; font-weight: 600; letter-spacing: 0.06em; }
+.log-line .lvl.is-warn   { color: var(--amber); }
+.log-line .lvl.is-error  { color: var(--rose); }
+.log-line .lvl.is-ok     { color: var(--lime); }
+.log-line .msg  { color: var(--paper); }
+@keyframes fade-up { to { opacity: 1; transform: translateY(0); } }
+
+/* ==========================================================================
+   Module C1 — Status Stripe (per-agent card)
+   4px coloured edge widens to 6px on hover; card slides right 4px.
+   ========================================================================== */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.agent {
+  position: relative;
+  background: var(--ink-card);
+  padding: 18px 20px 18px 26px;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease);
+}
+.agent:hover {
+  transform: translateX(4px);
+  background: #1A1727;
+}
+.agent::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 14px; bottom: 14px;
+  width: 4px;
+  background: var(--paper-soft);
+  transition: width var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease);
+}
+.agent:hover::before { width: 6px; }
+.agent[data-state="running"]::before  { background: var(--lime); }
+.agent[data-state="idle"]::before     { background: var(--amber); }
+.agent[data-state="stalled"]::before  { background: var(--rose); }
+.agent[data-state="provisioning"]::before { background: var(--magenta); }
+.agent[data-state="done"]::before     { background: var(--teal); }
+
+.agent-name {
+  font-size: 16px; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+}
+.agent-fork {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+  letter-spacing: 0.04em;
+}
+.agent-state {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-top: 12px;
+}
+.agent-state .dot {
+  width: 6px; height: 6px;
+  background: currentColor;
+}
+.agent[data-state="running"] .agent-state  { color: var(--lime); }
+.agent[data-state="idle"] .agent-state     { color: var(--amber); }
+.agent[data-state="stalled"] .agent-state  { color: var(--rose); }
+.agent[data-state="provisioning"] .agent-state { color: var(--lavender); }
+.agent[data-state="done"] .agent-state     { color: var(--teal); }
+
+.agent-task {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--paper-mute);
+  line-height: 1.5;
+}
+.agent-foot {
+  display: flex; justify-content: space-between;
+  margin-top: 14px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+
+/* ==========================================================================
+   Module D1 — Kanban Fullscreen (overlay z-index 1000)
+   Three columns Done/Now/Next; scroll-snap-x mandatory mobile;
+   :active drag-feel rotate 2deg + scale 1.02; Esc-to-close.
+   ========================================================================== */
+.missions-prompt {
+  background: var(--ink-card);
+  padding: 28px 32px;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  text-align: center;
+  display: flex; flex-direction: column; gap: 16px; align-items: center;
+}
+.missions-prompt h2 { margin: 0; font-size: 22px; }
+.missions-prompt p { margin: 0; color: var(--paper-mute); max-width: 540px; }
+
+.missions-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin-top: 18px; width: 100%;
+}
+.summary-stat {
+  background: var(--ink-deep);
+  padding: 16px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  display: flex; flex-direction: column; gap: 4px;
+  align-items: flex-start;
+}
+.summary-stat .num {
+  font-family: var(--font-mono); font-size: 28px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.summary-stat .lbl {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.summary-stat[data-col="done"] .num { color: var(--teal); }
+.summary-stat[data-col="now"]  .num { color: var(--lime); }
+.summary-stat[data-col="next"] .num { color: var(--lavender); }
+
+/* The fullscreen overlay itself. */
+.kanban-overlay {
+  position: fixed; inset: 0;
+  background: rgba(7, 6, 13, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  padding: 28px 32px;
+  overflow: hidden;
+}
+.kanban-overlay.is-open { display: flex; }
+.kanban-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 22px;
+}
+.kanban-head h2 {
+  font-size: 26px; font-weight: 600; margin: 0;
+  display: flex; align-items: center; gap: 14px;
+}
+.kanban-close {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: var(--ink-card);
+  font-family: var(--font-mono); font-size: 13px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  transition: background var(--dur-fast) var(--ease);
+}
+.kanban-close:hover { background: var(--ink-edge); }
+
+.kanban-board {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  overflow: hidden;
+}
+.kanban-col {
+  background: var(--ink-deep);
+  padding: 18px;
+  display: flex; flex-direction: column;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  overflow: hidden;
+}
+.kanban-col-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink-edge);
+}
+.kanban-col-head h3 {
+  font-size: 16px; margin: 0;
+  display: flex; align-items: center; gap: 10px;
+}
+.kanban-col-head .count {
+  font-family: var(--font-mono); font-size: 13px;
+  color: var(--paper-soft);
+}
+.kanban-col[data-col="done"] h3 .badge { background: var(--teal); color: var(--ink); }
+.kanban-col[data-col="now"]  h3 .badge { background: var(--lime); color: var(--ink); }
+.kanban-col[data-col="next"] h3 .badge { background: var(--lavender); color: var(--ink); }
+h3 .badge {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  padding: 2px 7px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+.kanban-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding-right: 4px;
+}
+.k-card {
+  background: var(--ink-card);
+  padding: 14px 16px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  display: flex; flex-direction: column; gap: 8px;
+  transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease);
+  cursor: grab;
+  user-select: none;
+}
+.k-card:hover { background: #1A1727; }
+.k-card:active {
+  cursor: grabbing;
+  transform: rotate(2deg) scale(1.02);
+}
+.k-card .k-id {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+  letter-spacing: 0.06em;
+}
+.k-card .k-title {
+  font-size: 15px; font-weight: 500;
+  color: var(--paper);
+}
+.k-card .k-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+.k-card .k-fork {
+  background: var(--ink-edge);
+  padding: 2px 7px;
+  font-size: 11px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+
+/* Mobile: scroll-snap-x mandatory + snap-dot indicator below */
+@media (max-width: 720px) {
+  .kanban-board {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 88%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .kanban-board::-webkit-scrollbar { display: none; }
+  .kanban-col { scroll-snap-align: center; }
+}
+.kanban-snap {
+  display: none;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 0 4px;
+}
+@media (max-width: 720px) {
+  .kanban-snap { display: flex; }
+}
+.snap-dot {
+  width: 8px; height: 8px;
+  background: var(--ink-edge);
+  transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.snap-dot.is-active { background: var(--magenta); transform: scaleX(2.4); }
+
+/* ==========================================================================
+   Module E2 — Spend Bars (animated burn-rate ranking)
+   Width grows from left on view-shown via transform: scaleX.
+   ========================================================================== */
+.spend-board {
+  background: var(--ink-card);
+  padding: 24px 28px;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+}
+.spend-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 110px;
+  gap: 18px; align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--ink-edge);
+}
+.spend-row:last-child { border-bottom: 0; }
+
+.spend-name {
+  font-size: 16px; font-weight: 600;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.spend-name .env {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft); letter-spacing: 0.06em;
+  font-weight: 400; text-transform: uppercase;
+}
+
+.bar-track {
+  height: 28px;
+  background: var(--ink-deep);
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+.bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--bar-width, 0%);
+  background: linear-gradient(90deg, var(--lime), var(--lavender));
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.bar-fill.is-mid  { background: linear-gradient(90deg, var(--amber), var(--lavender)); }
+.bar-fill.is-high { background: linear-gradient(90deg, var(--rose), var(--magenta-2)); }
+.bar-fill.is-shown { transform: scaleX(1); }
+
+.spend-amount {
+  font-family: var(--font-mono); font-size: 18px; font-weight: 600;
+  color: var(--paper);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.provider {
+  background: var(--ink-card);
+  padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  transition: background var(--dur-fast) var(--ease);
+}
+.provider:hover { background: #1A1727; }
+.provider .name { font-weight: 500; }
+.provider .state {
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.provider[data-state="active"] .state    { color: var(--lime); }
+.provider[data-state="ratelimit"] .state { color: var(--amber); }
+.provider[data-state="disabled"] .state  { color: var(--paper-soft); }
+
+/* ==========================================================================
+   Mobile shell — sidebar collapses behind toggle below 720px
+   ========================================================================== */
+.menu-toggle {
+  display: none;
+  position: fixed; top: 16px; left: 16px;
+  z-index: 200;
+  background: var(--ink-card);
+  padding: 10px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 280px; height: 100vh;
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease);
+    z-index: 150;
+  }
+  .sidebar.is-open { transform: translateX(0); }
+  .menu-toggle { display: inline-flex; }
+  .content { padding: 64px 18px 48px; }
+  .view-head { flex-direction: column; align-items: flex-start; }
+  .view-head h1 { font-size: 24px; }
+  .theater { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   prefers-reduced-motion — clamp every animation
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ribbon-cell.is-now { animation: none !important; }
+  .stream-dot { animation: none !important; opacity: 1; }
+}
+
+/* Focus rings for keyboard navigation — never remove for accessibility. */
+:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+</style>
+</head>
+<body>
+<button class="menu-toggle" aria-label="Toggle navigation" id="menuToggle">
+  <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+
+<div class="app">
+  <!-- ============================================================
+       Sidebar — three groups (Registry · Fork Control · System)
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Port Registry</div>
+        <div class="brand-sub">v26 · sign.it 1.0</div>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+        Registry
+      </div>
+      <button class="nav-item" data-view="registry-tenants" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect width="20" height="8" x="2" y="2"/><rect width="20" height="8" x="2" y="14"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        <span class="label">Tenants</span>
+        <span class="meta">12</span>
+      </button>
+      <button class="nav-item" data-view="registry-services" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M3 9V5a2 2 0 0 1 2-2h3M21 9V5a2 2 0 0 0-2-2h-3M3 15v4a2 2 0 0 0 2 2h3M21 15v4a2 2 0 0 1-2 2h-3"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="label">Services</span>
+        <span class="meta">38</span>
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></svg>
+        Fork Control
+        <span class="nav-badge">NEW</span>
+      </div>
+      <button class="nav-item is-active" data-view="forks" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="label">Forks</span>
+        <span class="meta">3</span>
+      </button>
+      <button class="nav-item" data-view="provisioning" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        <span class="label">Provisioning</span>
+        <span class="meta">2</span>
+      </button>
+      <button class="nav-item" data-view="agents" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+        <span class="label">Agents</span>
+        <span class="meta">12</span>
+      </button>
+      <button class="nav-item" data-view="missions" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>
+        <span class="label">Missions</span>
+        <span class="meta">70</span>
+      </button>
+      <button class="nav-item" data-view="api-keys" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+        <span class="label">API Keys</span>
+        <span class="meta">6</span>
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-label">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
+        System
+      </div>
+      <button class="nav-item" data-view="system-audit" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 2v6l4 2"/><circle cx="12" cy="14" r="8"/></svg>
+        <span class="label">Audit Log</span>
+      </button>
+      <button class="nav-item" data-view="system-settings" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="label">Settings</span>
+      </button>
+    </div>
+
+    <div class="sidebar-foot">
+      v26 · build 2026-05-03 · MIT
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       Main content — five Fork-Control views + placeholders
+       ============================================================ -->
+  <main class="content">
+    <!-- Forks · A1 Activity Ribbon -->
+    <section class="view is-active" id="view-forks" data-view="forks">
+      <div class="view-head">
+        <div>
+          <div class="title-row">
+            <h1>Forks</h1>
+            <span class="pill"><span class="mono">A1 Activity Ribbon</span></span>
+          </div>
+          <p>24-hour activity pattern across all active forks. The “now” segment pulses; hover to brighten the row.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            Refresh
+          </button>
+          <button class="btn btn-primary">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M12 5v14M5 12h14"/></svg>
+            New Fork
+          </button>
+        </div>
+      </div>
+
+      <div class="activity-board" id="activityBoard"><!-- rendered --></div>
+    </section>
+
+    <!-- Provisioning · B3 Stream Theater -->
+    <section class="view" id="view-provisioning" data-view="provisioning">
+      <div class="view-head">
+        <div>
+          <div class="title-row">
+            <h1>Provisioning</h1>
+            <span class="pill"><span class="mono">B3 Stream Theater</span></span>
+          </div>
+          <p>Live ETA timer plus a cascading log feed for the worktree currently being spun up.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M12 5v14M5 12h14"/></svg>
+            Queue worktree
+          </button>
+        </div>
+      </div>
+
+      <div class="theater">
+        <div class="eta-card">
+          <div class="eta-label">ETA · build &amp; mount</div>
+          <div class="eta-time is-running" id="etaTime"><span class="eta-min">02</span>:<span class="eta-sec">14</span></div>
+          <div class="eta-target" id="etaTarget">Target: TaxonAir → track_b-T-091</div>
+          <div class="eta-progress"><div class="eta-progress-fill" id="etaFill"></div></div>
+          <div class="mono" style="color: var(--paper-soft); margin-top: 6px;">started 2026-05-03 09:42 · agent claude-flight-7</div>
+        </div>
+
+        <div class="stream-card">
+          <div class="stream-head">
+            <div class="stream-title"><span class="stream-dot"></span>Live · build pipeline</div>
+            <div class="stream-meta" id="streamCounter">14 lines</div>
+          </div>
+          <div class="stream-feed" id="streamFeed"><!-- rendered --></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agents · C1 Status Stripe -->
+    <section class="view" id="view-agents" data-view="agents">
+      <div class="view-head">
+        <div>
+          <div class="title-row">
+            <h1>Agents</h1>
+            <span class="pill"><span class="mono">C1 Status Stripe</span></span>
+          </div>
+          <p>One card per agent. The 4&#8239;px coloured edge widens to 6&#8239;px on hover; the card slides 4&#8239;px right.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn">All forks</button>
+          <button class="btn btn-primary">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M12 5v14M5 12h14"/></svg>
+            Spawn
+          </button>
+        </div>
+      </div>
+      <div class="agents-grid" id="agentsGrid"><!-- rendered --></div>
+    </section>
+
+    <!-- Missions · D1 Kanban → opens fullscreen overlay -->
+    <section class="view" id="view-missions" data-view="missions">
+      <div class="view-head">
+        <div>
+          <div class="title-row">
+            <h1>Missions</h1>
+            <span class="pill"><span class="mono">D1 Kanban Fullscreen</span></span>
+          </div>
+          <p>Done · Now · Next. The board opens fullscreen so you can see the whole pipeline at once. Esc to close.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-primary" id="openKanban">
+            <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M4 4h16v16H4z"/><path d="M9 4v16M15 4v16"/></svg>
+            Open Kanban
+          </button>
+        </div>
+      </div>
+
+      <div class="missions-prompt">
+        <h2>Mission control · 70 sprints across 3 forks</h2>
+        <p>The board lives behind the “Open Kanban” button so it can claim the whole viewport when you need it. Press the button or hit <span class="mono">⌘⇧K</span> to open. Press <span class="mono">Esc</span> to close.</p>
+        <div class="missions-summary">
+          <div class="summary-stat" data-col="done">
+            <div class="num" id="missionsDone">23</div>
+            <div class="lbl">Done · last 7d</div>
+          </div>
+          <div class="summary-stat" data-col="now">
+            <div class="num" id="missionsNow">5</div>
+            <div class="lbl">Now · in flight</div>
+          </div>
+          <div class="summary-stat" data-col="next">
+            <div class="num" id="missionsNext">47</div>
+            <div class="lbl">Next · queued</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- API Keys · E2 Spend Bars -->
+    <section class="view" id="view-api-keys" data-view="api-keys">
+      <div class="view-head">
+        <div>
+          <div class="title-row">
+            <h1>API Keys</h1>
+            <span class="pill"><span class="mono">E2 Spend Bars</span></span>
+          </div>
+          <p>Today’s burn-rate ranking across forks plus the registered providers feeding them.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn">Today</button>
+          <button class="btn">7&nbsp;days</button>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>Spend · today</h2>
+        <span class="mono">USD · ranked descending</span>
+      </div>
+      <div class="spend-board" id="spendBoard"><!-- rendered --></div>
+
+      <div class="section-head">
+        <h2>Providers</h2>
+        <span class="mono">6 registered</span>
+      </div>
+      <div class="providers" id="providers"><!-- rendered --></div>
+    </section>
+
+    <!-- Placeholder views (Registry · System) -->
+    <section class="view" id="view-registry-tenants" data-view="registry-tenants">
+      <div class="view-head">
+        <div>
+          <div class="title-row"><h1>Tenants</h1><span class="pill"><span class="mono">Placeholder</span></span></div>
+          <p>The original Registry surface — preserved unchanged in v26.</p>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-registry-services" data-view="registry-services">
+      <div class="view-head">
+        <div>
+          <div class="title-row"><h1>Services</h1><span class="pill"><span class="mono">Placeholder</span></span></div>
+          <p>The original Services surface — preserved unchanged in v26.</p>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-system-audit" data-view="system-audit">
+      <div class="view-head">
+        <div>
+          <div class="title-row"><h1>Audit Log</h1><span class="pill"><span class="mono">Placeholder</span></span></div>
+          <p>System-wide audit feed.</p>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-system-settings" data-view="system-settings">
+      <div class="view-head">
+        <div>
+          <div class="title-row"><h1>Settings</h1><span class="pill"><span class="mono">Placeholder</span></span></div>
+          <p>Tokens, design system, telemetry.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============================================================
+     D1 Kanban — fullscreen overlay (z-index 1000)
+     ============================================================ -->
+<div class="kanban-overlay" id="kanbanOverlay" role="dialog" aria-modal="true" aria-labelledby="kanbanTitle">
+  <div class="kanban-head">
+    <h2 id="kanbanTitle">
+      <svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>
+      Mission Kanban
+    </h2>
+    <button class="kanban-close" id="kanbanClose">
+      <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      Close · Esc
+    </button>
+  </div>
+  <div class="kanban-board" id="kanbanBoard">
+    <div class="kanban-col" data-col="done">
+      <div class="kanban-col-head"><h3><span class="badge">Done</span></h3><span class="count" id="countDone">0</span></div>
+      <div class="kanban-list" data-list="done"></div>
+    </div>
+    <div class="kanban-col" data-col="now">
+      <div class="kanban-col-head"><h3><span class="badge">Now</span></h3><span class="count" id="countNow">0</span></div>
+      <div class="kanban-list" data-list="now"></div>
+    </div>
+    <div class="kanban-col" data-col="next">
+      <div class="kanban-col-head"><h3><span class="badge">Next</span></h3><span class="count" id="countNext">0</span></div>
+      <div class="kanban-list" data-list="next"></div>
+    </div>
+  </div>
+  <div class="kanban-snap" id="kanbanSnap">
+    <div class="snap-dot is-active"></div>
+    <div class="snap-dot"></div>
+    <div class="snap-dot"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Mock data + behaviour. Single-file, no external calls,
+     no localStorage, no IndexedDB.
+     ============================================================ -->
+<script>
+'use strict';
+
+/* ---------- Mock data ----------------------------------------------- */
+const FORKS = [
+  { id: 'taxonair', name: 'TaxonAir', env: 'production', agents: 5, spend_today: 8.42, hours_idle: 0,  status: 'active' },
+  { id: 'booomsta', name: 'BOOOMSTA', env: 'staging',    agents: 4, spend_today: 5.18, hours_idle: 0,  status: 'stalled' },
+  { id: 'aatp-os',  name: 'AATP-OS',  env: 'production', agents: 2, spend_today: 1.02, hours_idle: 14, status: 'idle' }
+];
+
+/* 24 hourly intensity values per fork; deterministic, not random. */
+const ACTIVITY_24H = {
+  taxonair: [0.05,0.05,0.05,0.05,0.10,0.18,0.42,0.71,0.92,0.85,0.78,0.68,0.62,0.74,0.88,0.96,0.84,0.71,0.55,0.40,0.28,0.18,0.10,0.06],
+  booomsta: [0.10,0.05,0.05,0.05,0.05,0.05,0.20,0.55,0.78,0.82,0.76,0.74,0.62,0.55,0.48,0.41,0.30,0.21,0.14,0.10,0.08,0.06,0.06,0.05],
+  'aatp-os':[0.12,0.10,0.08,0.06,0.05,0.05,0.05,0.06,0.10,0.18,0.22,0.18,0.12,0.10,0.06,0.05,0.05,0.05,0.05,0.05,0.05,0.06,0.05,0.05]
+};
+
+const AGENTS = [
+  { id: 'a1',  fork: 'taxonair', name: 'claude-flight-1',  state: 'running',     task: 'Lifting feature/T-090 worktree off staging' },
+  { id: 'a2',  fork: 'taxonair', name: 'claude-flight-2',  state: 'running',     task: 'Reviewing PR #142 — runway-yield calc' },
+  { id: 'a3',  fork: 'taxonair', name: 'codex-cargo-3',    state: 'idle',        task: 'Awaiting next mission from queue' },
+  { id: 'a4',  fork: 'taxonair', name: 'claude-flight-7',  state: 'provisioning',task: 'Spinning up build &amp; mount on track_b-T-091' },
+  { id: 'a5',  fork: 'taxonair', name: 'codex-tower',      state: 'running',     task: 'Validating ATC schema migration 0042' },
+  { id: 'a6',  fork: 'booomsta', name: 'claude-blast-1',   state: 'running',     task: 'Refactoring noise-floor detector' },
+  { id: 'a7',  fork: 'booomsta', name: 'claude-blast-2',   state: 'stalled',     task: 'Stalled on missing GOOGLE_TTS_KEY · escalated' },
+  { id: 'a8',  fork: 'booomsta', name: 'codex-mixer',      state: 'running',     task: 'Re-rendering pattern grid at 88 BPM' },
+  { id: 'a9',  fork: 'booomsta', name: 'codex-stem',       state: 'done',        task: 'Stem extraction ✓ · awaiting handoff' },
+  { id: 'a10', fork: 'aatp-os',  name: 'claude-os-1',      state: 'idle',        task: 'Idle · last sprint closed 14h ago' },
+  { id: 'a11', fork: 'aatp-os',  name: 'claude-os-2',      state: 'running',     task: 'Compiling kernel module for hover-jet drivers' },
+  { id: 'a12', fork: 'taxonair', name: 'claude-cabin',     state: 'running',     task: 'Generating in-flight UI copy for AC-3 cabin class' }
+];
+
+/* Sprints — 23 done (most recent 6 shown), 5 now, 47 next (most recent 12 shown). */
+const SPRINTS = {
+  done: [
+    { id:'T-090', title:'Auto-roadmap generator', fork:'taxonair', mins:128 },
+    { id:'T-080', title:'E2E smoke + master verify', fork:'taxonair', mins:96 },
+    { id:'T-070', title:'Pre-merge hook + smoke', fork:'taxonair', mins:74 },
+    { id:'T-022', title:'Translation layer v0.1', fork:'taxonair', mins:88 },
+    { id:'T-021', title:'Architecture doctrine + checklist', fork:'taxonair', mins:62 },
+    { id:'T-020', title:'Module + plugin registry', fork:'booomsta', mins:75 }
+  ],
+  now: [
+    { id:'T-091', title:'Auto-roadmap parallel-fan-out', fork:'taxonair', mins_left:24 },
+    { id:'T-082', title:'Smoke for T-022 / T-090 / T-070', fork:'taxonair', mins_left:18 },
+    { id:'T-T040', title:'Worktree-toolkit npm wrapper', fork:'booomsta', mins_left:42 },
+    { id:'T-S102', title:'Beat-grid quantiser refit', fork:'booomsta', mins_left:55 },
+    { id:'T-OS22', title:'Hover-jet driver bring-up', fork:'aatp-os',  mins_left:90 }
+  ],
+  next: [
+    { id:'T-100', title:'Tenant fork-isolation tests', fork:'taxonair' },
+    { id:'T-101', title:'Provisioning DSL v0.2', fork:'taxonair' },
+    { id:'T-102', title:'Spend-cap auto-pause', fork:'taxonair' },
+    { id:'T-103', title:'Audit-log retention policy', fork:'taxonair' },
+    { id:'T-S110', title:'Stem-loop velocity envelope', fork:'booomsta' },
+    { id:'T-S111', title:'Pattern-grid SIMD path', fork:'booomsta' },
+    { id:'T-S112', title:'Pulse-width modulation lab', fork:'booomsta' },
+    { id:'T-OS25', title:'Cabin-class hover-loop ext.', fork:'aatp-os' },
+    { id:'T-OS26', title:'Cargo-bay coolant vector', fork:'aatp-os' },
+    { id:'T-OS27', title:'ATC voice-prompt rerouting', fork:'aatp-os' },
+    { id:'T-104', title:'Recipient-broadcast for vault', fork:'taxonair' },
+    { id:'T-105', title:'Per-tenant cost-cap tier', fork:'taxonair' }
+  ]
+};
+
+const PROVIDERS = [
+  { name:'Anthropic', state:'active',    spent_today: 6.84, fork:'taxonair' },
+  { name:'OpenAI',    state:'active',    spent_today: 4.92, fork:'booomsta' },
+  { name:'Google',    state:'ratelimit', spent_today: 1.18, fork:'booomsta' },
+  { name:'Hetzner',   state:'active',    spent_today: 0.74, fork:'taxonair' },
+  { name:'Netcup',    state:'active',    spent_today: 0.62, fork:'aatp-os'  },
+  { name:'Stripe',    state:'disabled',  spent_today: 0.00, fork:'taxonair' }
+];
+
+/* ---------- Module A1 — render activity ribbons --------------------- */
+function renderActivityBoard() {
+  const root = document.getElementById('activityBoard');
+  if (!root) return;
+  const nowHour = new Date().getUTCHours();
+  root.innerHTML = FORKS.map(fork => {
+    const data = ACTIVITY_24H[fork.id] || [];
+    const cells = data.map((v, i) => {
+      const op = Math.max(0.08, Math.min(1, v));
+      const isNow = (i === nowHour && fork.status === 'active');
+      return `<div class="ribbon-cell${isNow ? ' is-now' : ''}" data-fork="${fork.id}" style="opacity:${op.toFixed(2)}" title="${i.toString().padStart(2,'0')}:00 — intensity ${(v*100).toFixed(0)}%"></div>`;
+    }).join('');
+    const axis = Array.from({length: 24}, (_, i) => `<span>${i.toString().padStart(2,'0')}</span>`).join('');
+    return `
+      <div class="ribbon" data-fork="${fork.id}">
+        <div class="ribbon-head">
+          <div>
+            <div class="ribbon-name">
+              <span>${fork.name}</span>
+              <span class="ribbon-env">${fork.env}</span>
+            </div>
+          </div>
+          <div class="ribbon-stats">
+            <span><strong>${fork.agents}</strong> agents</span>
+            <span>$<strong>${fork.spend_today.toFixed(2)}</strong> today</span>
+            ${fork.hours_idle > 0 ? `<span style="color:var(--amber);"><strong>${fork.hours_idle}h</strong> idle</span>` : ''}
+            ${fork.status === 'stalled' ? `<span style="color:var(--rose);"><strong>1</strong> stalled</span>` : ''}
+          </div>
+        </div>
+        <div class="ribbon-strip">${cells}</div>
+        <div class="ribbon-axis">${axis}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ---------- Module B3 — Stream Theater ------------------------------ */
+const LOG_TEMPLATE = [
+  { lvl:'info', msg:'received build request for track_b-T-091' },
+  { lvl:'info', msg:'preparing worktree at /home/dev/projects/taxonair-track_b-T-091' },
+  { lvl:'info', msg:'fetching base ref origin/main' },
+  { lvl:'ok',   msg:'base ref synced (4ms)' },
+  { lvl:'info', msg:'creating worktree (git worktree add)' },
+  { lvl:'ok',   msg:'worktree created on feature/T-091' },
+  { lvl:'info', msg:'installing dependencies (pnpm install --frozen-lockfile)' },
+  { lvl:'info', msg:'  resolving 482 packages …' },
+  { lvl:'warn', msg:'  warning: peer dep conflict for @tooling/eslint, ignoring' },
+  { lvl:'ok',   msg:'  installed in 28.4s (cache hit ratio 92%)' },
+  { lvl:'info', msg:'compiling typescript (pnpm exec tsc -p tsconfig.json)' },
+  { lvl:'ok',   msg:'  tsc → no errors (0 warnings)' },
+  { lvl:'info', msg:'mounting agent-relay sandbox' },
+  { lvl:'info', msg:'awaiting handoff to claude-flight-7 …' }
+];
+const LOG_STREAMING = [
+  { lvl:'ok',   msg:'agent claude-flight-7 attached · ready to accept missions' },
+  { lvl:'info', msg:'pre-merge hook armed for branch feature/T-091' },
+  { lvl:'info', msg:'streaming heartbeat every 30s' },
+];
+
+let streamCursor = 0;
+let etaSeconds = 134;
+let etaTotal = 240;
+let streamTimer = null;
+let etaTimer = null;
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60).toString().padStart(2,'0');
+  const s = Math.floor(secs % 60).toString().padStart(2,'0');
+  return { m, s };
+}
+
+function renderInitialStream() {
+  const feed = document.getElementById('streamFeed');
+  if (!feed) return;
+  feed.innerHTML = '';
+  streamCursor = 0;
+  LOG_TEMPLATE.forEach((line, i) => addLogLine(line, i * 36));
+  document.getElementById('streamCounter').textContent = `${LOG_TEMPLATE.length} lines`;
+}
+function addLogLine(line, delay) {
+  const feed = document.getElementById('streamFeed');
+  if (!feed) return;
+  const ts = new Date();
+  const t = `${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}:${ts.getSeconds().toString().padStart(2,'0')}`;
+  const el = document.createElement('div');
+  el.className = 'log-line';
+  el.style.animationDelay = (delay || 0) + 'ms';
+  el.innerHTML = `<span class="ts">${t}</span><span class="lvl is-${line.lvl}">${line.lvl}</span><span class="msg">${line.msg}</span>`;
+  feed.appendChild(el);
+  feed.scrollTop = feed.scrollHeight;
+}
+function startStream() {
+  stopStream();
+  renderInitialStream();
+  let n = 0;
+  streamTimer = setInterval(() => {
+    if (n >= LOG_STREAMING.length) { stopStream(); return; }
+    addLogLine(LOG_STREAMING[n], 0);
+    n += 1;
+    document.getElementById('streamCounter').textContent = `${LOG_TEMPLATE.length + n} lines`;
+  }, 4200);
+  if (etaTimer) clearInterval(etaTimer);
+  etaTimer = setInterval(() => {
+    if (etaSeconds <= 0) { clearInterval(etaTimer); return; }
+    etaSeconds -= 1;
+    const t = formatTime(etaSeconds);
+    const el = document.getElementById('etaTime');
+    if (!el) return;
+    el.querySelector('.eta-min').textContent = t.m;
+    el.querySelector('.eta-sec').textContent = t.s;
+    el.classList.toggle('is-warn', etaSeconds < 60 && etaSeconds >= 30);
+    el.classList.toggle('is-late', etaSeconds < 30);
+    const pct = Math.max(0, Math.min(100, (1 - etaSeconds / etaTotal) * 100));
+    const fill = document.getElementById('etaFill');
+    if (fill) fill.style.width = pct.toFixed(1) + '%';
+  }, 1000);
+}
+function stopStream() {
+  if (streamTimer) { clearInterval(streamTimer); streamTimer = null; }
+}
+
+/* ---------- Module C1 — Status Stripe agent cards ------------------- */
+function renderAgents() {
+  const grid = document.getElementById('agentsGrid');
+  if (!grid) return;
+  const stateLabels = {
+    running:'running', idle:'idle', stalled:'stalled',
+    provisioning:'provisioning', done:'done'
+  };
+  grid.innerHTML = AGENTS.map(a => `
+    <div class="agent" data-state="${a.state}" data-fork="${a.fork}">
+      <div class="agent-name">
+        <span>${a.name}</span>
+      </div>
+      <div class="agent-fork">${a.fork.toUpperCase()}</div>
+      <div class="agent-state"><span class="dot"></span>${stateLabels[a.state] || a.state}</div>
+      <div class="agent-task">${a.task}</div>
+      <div class="agent-foot">
+        <span>last heartbeat 12s ago</span>
+        <span>pid ${(31000 + (a.id.charCodeAt(1) || 0) * 13)}</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Module D1 — Kanban (rendered ahead of overlay open) ----- */
+function renderKanban() {
+  const cols = ['done', 'now', 'next'];
+  cols.forEach(col => {
+    const list = document.querySelector(`.kanban-list[data-list="${col}"]`);
+    if (!list) return;
+    const items = SPRINTS[col] || [];
+    document.getElementById('count' + col[0].toUpperCase() + col.slice(1)).textContent = items.length;
+    list.innerHTML = items.map(s => {
+      const meta = (col === 'done') ? `${s.mins} min` : (col === 'now') ? `${s.mins_left} min left` : 'queued';
+      return `<div class="k-card" tabindex="0" role="article">
+        <span class="k-id">${s.id}</span>
+        <span class="k-title">${s.title}</span>
+        <div class="k-foot">
+          <span class="k-fork">${s.fork}</span>
+          <span>${meta}</span>
+        </div>
+      </div>`;
+    }).join('');
+  });
+  document.getElementById('missionsDone').textContent = SPRINTS.done.length + 17;
+  document.getElementById('missionsNow').textContent = SPRINTS.now.length;
+  document.getElementById('missionsNext').textContent = SPRINTS.next.length + 35;
+}
+
+function openKanban() {
+  const overlay = document.getElementById('kanbanOverlay');
+  overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const first = overlay.querySelector('.kanban-close');
+    if (first) first.focus();
+  }, 50);
+}
+function closeKanban() {
+  const overlay = document.getElementById('kanbanOverlay');
+  overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+/* ---------- Module E2 — Spend Bars + provider list ------------------ */
+function renderSpend() {
+  const root = document.getElementById('spendBoard');
+  if (!root) return;
+  const sorted = [...FORKS].sort((a,b) => b.spend_today - a.spend_today);
+  const max = Math.max(...sorted.map(f => f.spend_today)) || 1;
+  root.innerHTML = sorted.map((f, idx) => {
+    const pct = (f.spend_today / max) * 100;
+    const cls = pct > 75 ? ' is-high' : pct > 40 ? ' is-mid' : '';
+    return `
+      <div class="spend-row">
+        <div class="spend-name">
+          <span>${f.name}</span>
+          <span class="env">${f.env}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill${cls}" data-pct="${pct.toFixed(1)}" style="--bar-width:${pct.toFixed(1)}%"></div>
+        </div>
+        <div class="spend-amount">$${f.spend_today.toFixed(2)}</div>
+      </div>`;
+  }).join('');
+
+  const provs = document.getElementById('providers');
+  if (provs) {
+    provs.innerHTML = PROVIDERS.map(p => `
+      <div class="provider" data-state="${p.state}">
+        <div>
+          <div class="name">${p.name}</div>
+          <div class="mono" style="color:var(--paper-soft); margin-top:2px;">$${p.spent_today.toFixed(2)} today · ${p.fork}</div>
+        </div>
+        <span class="state">${p.state}</span>
+      </div>`).join('');
+  }
+}
+function animateSpendBars() {
+  // Width grows from left on view-shown.
+  const fills = document.querySelectorAll('#spendBoard .bar-fill');
+  fills.forEach((el, i) => {
+    el.classList.remove('is-shown');
+    setTimeout(() => el.classList.add('is-shown'), 80 + i * 90);
+  });
+}
+
+/* ---------- View switcher ------------------------------------------ */
+function activateView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === name));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('is-active', b.dataset.view === name));
+  if (name === 'provisioning') startStream(); else stopStream();
+  if (name === 'api-keys') animateSpendBars();
+  if (window.matchMedia && window.matchMedia('(max-width: 720px)').matches) {
+    document.getElementById('sidebar').classList.remove('is-open');
+  }
+  if (name === 'missions') {/* leave the prompt; user clicks to open overlay */}
+}
+
+/* ---------- Boot ---------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', () => {
+  renderActivityBoard();
+  renderAgents();
+  renderKanban();
+  renderSpend();
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => activateView(btn.dataset.view));
+  });
+
+  const openBtn = document.getElementById('openKanban');
+  if (openBtn) openBtn.addEventListener('click', openKanban);
+
+  const closeBtn = document.getElementById('kanbanClose');
+  if (closeBtn) closeBtn.addEventListener('click', closeKanban);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('kanbanOverlay').classList.contains('is-open')) {
+      closeKanban();
+    }
+    if (e.key === 'k' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+      e.preventDefault();
+      activateView('missions');
+      openKanban();
+    }
+  });
+
+  // Click outside the columns to close kanban (but not when clicking columns themselves).
+  const overlay = document.getElementById('kanbanOverlay');
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeKanban();
+  });
+
+  // Mobile snap-dot indicator follows scroll.
+  const board = document.getElementById('kanbanBoard');
+  const dots = document.querySelectorAll('#kanbanSnap .snap-dot');
+  if (board && dots.length) {
+    board.addEventListener('scroll', () => {
+      const idx = Math.round(board.scrollLeft / board.clientWidth);
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
+    }, { passive: true });
+  }
+
+  // Mobile menu toggle.
+  const toggle = document.getElementById('menuToggle');
+  if (toggle) toggle.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('is-open');
+  });
+
+  // Initial spend animation if api-keys is the boot view (it's not by default).
+  if (document.querySelector('.view.is-active[data-view="api-keys"]')) animateSpendBars();
+});
+</script>
+</body>
+</html>
