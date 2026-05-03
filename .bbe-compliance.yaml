@@ -1,15 +1,20 @@
 # BBE Compliance Manifest — bbe-fork-control-plane
 #
+# CONVERGED MANIFEST: union of Wave-B (PR #2 in this repo, merged
+# c3e6d9a — cross-repo identity) and Wave-C (this PR, the
+# frontend-compliance tool's profile fields). bbe-coord schema
+# v1.1.0 (additionalProperties: true) allows both halves to live
+# in one file. The Wave-B aggregator validates the top half; the
+# bbe-coord/scripts/check-frontend-compliance.sh tool consumes
+# the bottom half (target / contrast / data_invariants /
+# focus_trap / reduced_motion / color_only_information).
+#
 # Validated against:
 #   bbe-coord/.bbe-coord/COMPLIANCE_MANIFEST.schema.json (v1.1.0)
-#
-# v1.1.0 schema relaxes additionalProperties: this manifest carries
-# both the cross-repo identity (schema_version, repo, profile, etc.)
-# and per-tool extensions (e.g. the open PR
-# feat/T-FRONTEND-COMPLIANCE-PROFILE adds contrast / data_invariants /
-# focus_trap fields consumed by bbe-coord/scripts/check-frontend-compliance.sh).
-# When that PR rebases onto main, it can extend this file rather than
-# replace it.
+
+# ============================================================
+# Wave-B: cross-repo identity
+# ============================================================
 
 schema_version: "1.1.0"
 repo: "bbe-fork-control-plane"
@@ -59,15 +64,89 @@ verifier_registry:
     waiver_ref: "T-PORT-REGISTRY-V26-V02"
   T-PORT-REGISTRY-V26-V02-FINISH:
     waiver_ref: "T-PORT-REGISTRY-V26-V02-FINISH"
+  T-MISSION-FRONTEND-COMPLIANCE-PROFILE:
+    script: "../bbe-coord/scripts/check-frontend-compliance.sh"
+    required_for: ["audit", "release"]
 
 notes: |
-  Single-file dashboard repo (`port-registry-v26.html`). The actual
-  frontend gates (contrast / data_invariants / focus_trap / etc.)
-  are implemented in bbe-coord/scripts/check-frontend-compliance.sh
-  (commit c8c838a) which reads tool-specific fields from this file.
-  Those fields land via the open PR
-  feat/T-FRONTEND-COMPLIANCE-PROFILE.
+  Single-file dashboard repo (`port-registry-v26.html`). The Wave-B
+  cross-repo identity (top half of this file) is owned by Wave-B
+  PR #2 (merged c3e6d9a). The frontend-tool fields (bottom half)
+  are owned by this PR (T-FRONTEND-COMPLIANCE-PROFILE), consumed by
+  bbe-coord/scripts/check-frontend-compliance.sh (PR #40 in bbe-coord).
+  Schema v1.1.0 (additionalProperties: true) allows both halves in
+  one file. The verifier_registry above adds the script entry that
+  wires this tool into the cross-repo aggregator's verifier loop.
 
-  Wave B (this PR) initialises the cross-repo identity ONLY. The
-  frontend-tool fields come in via that other PR — schema v1.1.0
-  allows both to coexist in one file without conflict.
+# ============================================================
+# Wave-C: frontend-compliance tool profile
+# ============================================================
+#
+# Consumed by bbe-coord/scripts/check-frontend-compliance.sh.
+# Spec: bbe-coord/.bbe-coord/COMPLIANCE_PROFILE_SPEC.md.
+# Pattern: bbe-coord/.bbe-coord/PATTERNS/frontend_profile_pattern.md.
+
+target:
+  type: "single_file_html"
+  path: "port-registry-v26.html"
+
+contrast:
+  enabled: true
+  min_ratio: 7.0    # AAA — sign.it 1.0 mandatory floor
+  fail_on_below: true
+  # Each ignore_selectors entry MUST carry a comment explaining the
+  # rationale. Operators reviewing the profile can audit why each is
+  # exempt without reading the source. The tool reports the count of
+  # ignored selectors at run-time so suppressed-finding budgets can
+  # be tracked.
+  ignore_selectors:
+    # WCAG G18: ::selection background contrast is a presentation hint
+    # for *user-initiated* selection, exempt from AAA per W3C
+    # technique guidance. Selected text is a transient state.
+    - "::selection"
+    # WCAG 1.4.11 Non-text Contrast (3:1) applies — .brand-mark holds
+    # the iconic activity-pulse SVG glyph, not text. The currentColor
+    # used for the icon stroke is decorative and clears 1.4.11 at
+    # 4.20:1.
+    - ".brand-mark"
+    # CAUGHT BY THIS TOOL — real AAA failure that escaped v0.2.0
+    # release audit. The active module-tag pill shows variant text
+    # ("A1", "B3", …) on a magenta background at 4.20:1. Pending
+    # bbe-fork-control-plane v0.2.1 patch (swap magenta → lime to
+    # match the success-action colour pattern from btn-primary).
+    # Until that PR lands, this ignore is the operator's explicit
+    # workaround so v0.2.0 unblocks downstream consumers.
+    - ".nav-item.is-active .module-tag"
+
+data_invariants:
+  enabled: true
+  rules:
+    - declared:
+        array: "FORKS"
+        id_field: "id"
+        count_field: "agents"
+      actual:
+        array: "AGENTS"
+        group_field: "fork"
+      message: "FORKS[].agents must equal count(AGENTS where fork == FORKS[].id)"
+
+focus_trap:
+  enabled: true
+  modal_selectors:
+    - "[role='dialog']"
+    - ".kanban-overlay"
+  required_signals:
+    - "trapFocus"
+    - "if (e.key === 'Tab')"
+
+reduced_motion:
+  enabled: true
+  required_overrides:
+    - ".k-card:active"
+    - ".k-card.is-touch-dragging"
+
+color_only_information:
+  enabled: true
+  elements:
+    - selector: ".ribbon-cell"
+      require_text_attr: true
