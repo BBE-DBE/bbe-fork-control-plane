@@ -231,8 +231,11 @@ input, textarea { font: inherit; color: inherit; }
 }
 .btn:hover { background: var(--ink-edge); }
 .btn:active { transform: translateY(1px); }
-.btn.btn-primary { background: var(--magenta); color: var(--ink); }
-.btn.btn-primary:hover { background: var(--magenta-2); }
+/* CODEX-AUDIT-V26-CRITICAL: btn-primary text on magenta was 4.20:1 (fails AAA).
+   Switch to lime-on-ink (16.64:1) — lime is the action/success colour in
+   the design system anyway, so primary-action consistency improves too. */
+.btn.btn-primary { background: var(--lime); color: var(--ink); font-weight: 600; }
+.btn.btn-primary:hover { background: #B0EA45; }     /* slight darken — still 14:1+ */
 
 .section-head {
   display: flex; align-items: center; gap: 12px;
@@ -315,6 +318,19 @@ input, textarea { font: inherit; color: inherit; }
 }
 .ribbon-axis span { text-align: left; }
 .ribbon-axis span:nth-child(odd) { visibility: hidden; }
+
+/* CODEX-AUDIT-V26-MEDIUM: ribbon now exposes a textual summary so
+   information isn't conveyed via opacity/colour alone. */
+.ribbon-summary {
+  margin-top: 8px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+  letter-spacing: 0.04em;
+}
+.ribbon-cell.is-peak {
+  outline: 1px solid var(--paper);
+  outline-offset: -1px;
+}
 
 /* ==========================================================================
    Module B3 — Stream Theater
@@ -1036,6 +1052,12 @@ h3 .badge {
   .spend-amount.is-bumped { animation: none !important; }
   .nav-item.is-active::after { animation: none !important; }
   .toast { animation: none !important; }
+  /* CODEX-AUDIT-V26-MEDIUM: drag-rotate transform was a static state
+     (not a transition), so the global transition-duration clamp didn't
+     reach it. Explicit overrides below kill the rotate/scale that
+     would still fire on :active and during touch-drag. */
+  .k-card:active { transform: none !important; }
+  .k-card.is-touch-dragging { transform: none !important; }
 }
 
 /* Focus rings for keyboard navigation — never remove for accessibility. */
@@ -1111,7 +1133,7 @@ h3 .badge {
         <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>
         <span class="label">Missions</span>
         <span class="module-tag" data-tag="D">D1</span>
-        <span class="meta">70</span>
+        <span class="meta">23</span><!-- CODEX-AUDIT-V26-HIGH: was 70 (matched the +17/+35 fudge); now reflects SPRINTS total 6+5+12=23. -->
       </button>
       <button class="nav-item" data-view="api-keys" data-slot="E" type="button">
         <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
@@ -1247,7 +1269,7 @@ h3 .badge {
       </div>
 
       <div class="missions-prompt">
-        <h2>Mission control · 70 sprints across 3 forks</h2>
+        <h2>Mission control · 23 sprints across 3 forks</h2>
         <p>The board lives behind the “Open Kanban” button so it can claim the whole viewport when you need it. Press the button or hit <span class="mono">⌘⇧K</span> to open. Press <span class="mono">Esc</span> to close.</p>
         <div class="missions-summary">
           <div class="summary-stat" data-col="done">
@@ -1459,7 +1481,7 @@ const MODULE_CHOICE = parseModuleChoice();
 
 /* ---------- Mock data ----------------------------------------------- */
 const FORKS = [
-  { id: 'taxonair', name: 'TaxonAir', env: 'production', agents: 5, spend_today: 8.42, hours_idle: 0,  status: 'active' },
+  { id: 'taxonair', name: 'TaxonAir', env: 'production', agents: 6, spend_today: 8.42, hours_idle: 0,  status: 'active' },  /* CODEX-AUDIT-V26-HIGH: AGENTS array carries 6 taxonair agents (a1,a2,a3,a4,a5,a12); was 5 here. */
   { id: 'booomsta', name: 'BOOOMSTA', env: 'staging',    agents: 4, spend_today: 5.18, hours_idle: 0,  status: 'stalled' },
   { id: 'aatp-os',  name: 'AATP-OS',  env: 'production', agents: 2, spend_today: 1.02, hours_idle: 14, status: 'idle' }
 ];
@@ -1528,19 +1550,31 @@ const PROVIDERS = [
   { name:'Stripe',    state:'disabled',  spent_today: 0.00, fork:'taxonair' }
 ];
 
-/* ---------- Module A1 — render activity ribbons --------------------- */
+/* ---------- Module A1 — render activity ribbons ---------------------
+   CODEX-AUDIT-V26-MEDIUM: information was conveyed via opacity/colour
+   only — fails WCAG 1.4.1 "Use of Color". v0.2.0 final: ribbon now
+   carries a visible peak label (text + intensity) AND a per-row
+   summary line (`avg X% · peak HH:00 (Y%)`) so the data is readable
+   without relying on visual encoding alone. The aria-label on each
+   cell stays as a per-hour readout for screen readers. */
 function renderActivityBoard() {
   const root = document.getElementById('activityBoard');
   if (!root) return;
   const nowHour = new Date().getUTCHours();
   root.innerHTML = FORKS.map(fork => {
     const data = ACTIVITY_24H[fork.id] || [];
+    const peakIdx = data.reduce((bi, v, i, a) => v > a[bi] ? i : bi, 0);
+    const peakVal = data[peakIdx] || 0;
+    const avgVal = data.length ? (data.reduce((s, v) => s + v, 0) / data.length) : 0;
     const cells = data.map((v, i) => {
       const op = Math.max(0.08, Math.min(1, v));
       const isNow = (i === nowHour && fork.status === 'active');
-      return `<div class="ribbon-cell${isNow ? ' is-now' : ''}" data-fork="${fork.id}" style="opacity:${op.toFixed(2)}" title="${i.toString().padStart(2,'0')}:00 — intensity ${(v*100).toFixed(0)}%"></div>`;
+      const isPeak = (i === peakIdx);
+      const lbl = `${i.toString().padStart(2,'0')}:00 — intensity ${(v*100).toFixed(0)}%${isPeak ? ' (peak)' : ''}${isNow ? ' (now)' : ''}`;
+      return `<div class="ribbon-cell${isNow ? ' is-now' : ''}${isPeak ? ' is-peak' : ''}" data-fork="${fork.id}" style="opacity:${op.toFixed(2)}" title="${lbl}" aria-label="${lbl}" role="img"></div>`;
     }).join('');
     const axis = Array.from({length: 24}, (_, i) => `<span>${i.toString().padStart(2,'0')}</span>`).join('');
+    const summary = `avg ${(avgVal*100).toFixed(0)}% · peak ${peakIdx.toString().padStart(2,'0')}:00 (${(peakVal*100).toFixed(0)}%)`;
     return `
       <div class="ribbon" data-fork="${fork.id}">
         <div class="ribbon-head">
@@ -1557,8 +1591,9 @@ function renderActivityBoard() {
             ${fork.status === 'stalled' ? `<span style="color:var(--rose);"><strong>1</strong> stalled</span>` : ''}
           </div>
         </div>
-        <div class="ribbon-strip">${cells}</div>
-        <div class="ribbon-axis">${axis}</div>
+        <div class="ribbon-strip" role="group" aria-label="24-hour activity for ${fork.name}">${cells}</div>
+        <div class="ribbon-axis" aria-hidden="true">${axis}</div>
+        <div class="ribbon-summary"><span class="mono">${summary}</span></div>
       </div>`;
   }).join('');
 }
@@ -1694,9 +1729,14 @@ function renderKanban() {
       </div>`;
     }).join('');
   });
-  document.getElementById('missionsDone').textContent = SPRINTS.done.length + 17;
+  /* CODEX-AUDIT-V26-HIGH: dropping the +17 / +35 fudge factors that
+     made the missions summary display 23/5/47 while the kanban arrays
+     held 6/5/12. The summary now reflects real array sizes; growing
+     the dataset means growing SPRINTS, not the literal in the
+     renderer. */
+  document.getElementById('missionsDone').textContent = SPRINTS.done.length;
   document.getElementById('missionsNow').textContent = SPRINTS.now.length;
-  document.getElementById('missionsNext').textContent = SPRINTS.next.length + 35;
+  document.getElementById('missionsNext').textContent = SPRINTS.next.length;
 }
 
 /* ---------- Drag and Drop ---------------------------------------------
@@ -2001,8 +2041,16 @@ function toggleHelp(force /* boolean | undefined */) {
   const ov = document.getElementById('helpOverlay');
   if (!ov) return;
   const open = (typeof force === 'boolean') ? force : !ov.classList.contains('is-open');
+  if (open) {
+    helpReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
   ov.classList.toggle('is-open', open);
-  if (open) setTimeout(() => document.getElementById('helpClose').focus(), 50);
+  if (open) {
+    setTimeout(() => document.getElementById('helpClose').focus(), 50);
+  } else if (helpReturnFocus && document.contains(helpReturnFocus)) {
+    helpReturnFocus.focus();
+    helpReturnFocus = null;
+  }
 }
 
 /* ---------- Focus trap for kanban + help overlays ---------------------- */
@@ -2170,7 +2218,13 @@ function stopHeartbeat() {
   if (heartbeatRafId) { cancelAnimationFrame(heartbeatRafId); heartbeatRafId = null; }
 }
 
+/* CODEX-AUDIT-V26-HIGH: focus-trap finalized. Track the trigger
+   element so focus returns there on close — not back to body which
+   would lose the tab-order context. */
+let kanbanReturnFocus = null;
+let helpReturnFocus = null;
 function openKanban() {
+  kanbanReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const overlay = document.getElementById('kanbanOverlay');
   overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -2183,6 +2237,10 @@ function closeKanban() {
   const overlay = document.getElementById('kanbanOverlay');
   overlay.classList.remove('is-open');
   document.body.style.overflow = '';
+  if (kanbanReturnFocus && document.contains(kanbanReturnFocus)) {
+    kanbanReturnFocus.focus();
+  }
+  kanbanReturnFocus = null;
 }
 
 /* ---------- Module E2 — Spend Bars + provider list ------------------ */

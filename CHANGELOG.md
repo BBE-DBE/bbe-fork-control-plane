@@ -4,11 +4,59 @@ All notable changes to bbe-fork-control-plane are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 SemVer: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — 2026-05-03
+## [0.2.0] — 2026-05-03 (final, supersedes draft v0.2.0)
 
 Live Kanban + Accessibility Pass. Three substantial features
 graduate from v0.1.0 `remaining_risks` into shipped capability,
-plus an operator-choice surface and a polish pass.
+plus an operator-choice surface and a polish pass — and on top
+of that: every Codex audit finding (Critical, High, Medium) from
+T-AUDIT-V26-UI resolved before this tag is final.
+
+> **Note on the tag.** A draft v0.2.0 was pushed earlier today
+> (commit `fbf20b9`) without Codex's audit findings integrated.
+> The final v0.2.0 tag is repointed to the post-audit commit
+> below. Anyone who pinned the early draft sha should re-pull.
+
+### Codex audit findings resolved
+
+- **CODEX-AUDIT-V26-CRITICAL**: `.btn.btn-primary` text contrast
+  was 4.20:1 (`--ink` on `--magenta`) — fails WCAG AAA. Fixed by
+  switching the primary-action button to `--ink` on `--lime`
+  (16.64:1, AAA) plus a darker-lime hover (`#B0EA45`, 14.12:1,
+  AAA). Lime is already the action/success colour in the design
+  system, so the swap also tightens semantic consistency.
+- **CODEX-AUDIT-V26-HIGH** (mock-data #1): `FORKS.taxonair.agents`
+  said 5 but the `AGENTS` array carried 6 TaxonAir agents
+  (`a1`,`a2`,`a3`,`a4`,`a5`,`a12`). Bumped to 6. `AGENTS` totals
+  now per-fork: 6/4/2 = 12, matching `FORKS.agents`.
+- **CODEX-AUDIT-V26-HIGH** (mock-data #2): `SPRINTS.{done,now,next}`
+  arrays held 6/5/12 entries but the missions summary displayed
+  23/5/47 because of `+17` and `+35` fudge factors in the
+  renderer. Sidebar Missions meta showed 70. Removed the
+  fudge across all three surfaces; UI now reflects real array
+  sizes.
+- **CODEX-AUDIT-V26-HIGH** (focus-trap): the Kanban + Help
+  overlays already had `trapFocus()` but didn't track the
+  trigger element, so closing the overlay sent focus to body
+  instead of back to the opener. Added `kanbanReturnFocus` /
+  `helpReturnFocus` capture on open + restore on close.
+- **CODEX-AUDIT-V26-MEDIUM** (A1 ribbon non-text encoding):
+  intensity was conveyed via opacity/colour only, failing WCAG
+  1.4.1 "Use of Color". Each ribbon now carries a textual
+  summary line (`avg X% · peak HH:00 (Y%)`) plus a per-cell
+  `aria-label` with the hour, intensity, and `peak`/`now`
+  badges. The peak cell also gets a thin paper outline so it's
+  visually distinguishable beyond opacity.
+- **CODEX-AUDIT-V26-MEDIUM** (reduced-motion gap): the global
+  `@media (prefers-reduced-motion: reduce)` block clamped
+  transitions but missed STATIC `:active` transforms. Added
+  explicit overrides:
+  ```
+  .k-card:active           { transform: none !important; }
+  .k-card.is-touch-dragging { transform: none !important; }
+  ```
+  Drag-rotate (the v0.1.0 `rotate(2deg) scale(1.02)` trick) now
+  truly respects user preference.
 
 ### Added
 
