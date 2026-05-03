@@ -1,0 +1,31 @@
+# BBE Compliance Waivers — bbe-fork-control-plane
+#
+# Validated against bbe-coord/.bbe-coord/COMPLIANCE_WAIVERS.schema.json (v1.0.0).
+
+schema_version: "1.0.0"
+
+categories:
+  audit_only: "Sprint produces audit reports under audit/ and Markdown findings; no runtime artefact."
+  composite_fix: "Small-fix sprint covered transitively by per-area verifiers."
+  pre_t_nnn_legacy: "Pre-T-NNN scaffolding."
+  node_test_suite: "Covered by browser/static check-frontend-compliance.sh in bbe-coord."
+  spec_only: "Markdown-only sprint."
+  covered_transitively: "Covered by another sprint's verifier."
+
+verifier_waivers:
+  T-PORT-REGISTRY-UI:
+    category: pre_t_nnn_legacy
+    rationale: "Scaffold sprint; v0.1.0 baseline. Subsequent V26-* sprints supersede."
+    covered_by: ["T-PORT-REGISTRY-V26"]
+  T-PORT-REGISTRY-V26:
+    category: covered_transitively
+    rationale: "v0.1.0 of fork-control plane. Successor sprints (V02, V02-FINISH) carry the working version."
+    covered_by: ["T-PORT-REGISTRY-V26-V02-FINISH"]
+  T-PORT-REGISTRY-V26-V02:
+    category: covered_transitively
+    rationale: "v0.2.0 baseline; the V02-FINISH sprint resolves the audit findings."
+    covered_by: ["T-PORT-REGISTRY-V26-V02-FINISH"]
+  T-PORT-REGISTRY-V26-V02-FINISH:
+    category: node_test_suite
+    rationale: "Single-file dashboard. Compliance is checked by bbe-coord/scripts/check-frontend-compliance.sh against this manifest, not by a per-sprint shell verifier."
+    evidence: "bbe-coord/scripts/check-frontend-compliance.sh"
