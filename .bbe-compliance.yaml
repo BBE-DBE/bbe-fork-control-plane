@@ -1,0 +1,73 @@
+# BBE Compliance Manifest — bbe-fork-control-plane
+#
+# Validated against:
+#   bbe-coord/.bbe-coord/COMPLIANCE_MANIFEST.schema.json (v1.1.0)
+#
+# v1.1.0 schema relaxes additionalProperties: this manifest carries
+# both the cross-repo identity (schema_version, repo, profile, etc.)
+# and per-tool extensions (e.g. the open PR
+# feat/T-FRONTEND-COMPLIANCE-PROFILE adds contrast / data_invariants /
+# focus_trap fields consumed by bbe-coord/scripts/check-frontend-compliance.sh).
+# When that PR rebases onto main, it can extend this file rather than
+# replace it.
+
+schema_version: "1.1.0"
+repo: "bbe-fork-control-plane"
+owner: "fork-machine"
+
+profile: "frontend_single_file"
+profile_version: "1.0.0"
+
+required_gates:
+  - "frontend_accessibility_profile"
+  - "data_invariants_declared_counts"
+  - "color_not_only_information"
+  - "focus_trap_present"
+
+optional_gates:
+  - "doctrine-lint"
+
+skip_policy:
+  dev: "allow_required_skips"
+  audit: "fail_required_skips"
+  release: "fail_required_skips"
+
+tool_requirements:
+  python3:
+    dev: "required"
+    audit: "required"
+    release: "required"
+
+evidence_outputs:
+  - "audit/evidence/frontend-compliance.json"
+
+cross_repo:
+  siblings:
+    - repo: "bbe-coord"
+      required: true
+    - repo: "bbe-secrets-vault"
+      required: false
+    - repo: "bbe-security-scanner"
+      required: false
+
+verifier_registry:
+  T-PORT-REGISTRY-UI:
+    waiver_ref: "T-PORT-REGISTRY-UI"
+  T-PORT-REGISTRY-V26:
+    waiver_ref: "T-PORT-REGISTRY-V26"
+  T-PORT-REGISTRY-V26-V02:
+    waiver_ref: "T-PORT-REGISTRY-V26-V02"
+  T-PORT-REGISTRY-V26-V02-FINISH:
+    waiver_ref: "T-PORT-REGISTRY-V26-V02-FINISH"
+
+notes: |
+  Single-file dashboard repo (`port-registry-v26.html`). The actual
+  frontend gates (contrast / data_invariants / focus_trap / etc.)
+  are implemented in bbe-coord/scripts/check-frontend-compliance.sh
+  (commit c8c838a) which reads tool-specific fields from this file.
+  Those fields land via the open PR
+  feat/T-FRONTEND-COMPLIANCE-PROFILE.
+
+  Wave B (this PR) initialises the cross-repo identity ONLY. The
+  frontend-tool fields come in via that other PR — schema v1.1.0
+  allows both to coexist in one file without conflict.
