@@ -151,10 +151,29 @@ Fullscreen + Esc-to-close gives the kanban its full real estate
 when actually needed and keeps the rest of the dashboard
 uncluttered when not.
 
-**Drag-feel.** `:active` on a card applies `transform: rotate(2deg)
-scale(1.02)` — the same micro-tilt that makes Trello / Linear
-cards feel "lifted" without v26 actually implementing drag-and-
-drop yet (v0.2.0 will).
+**Drag-feel + real DnD (v0.2.0).** `:active` on a card still
+applies `transform: rotate(2deg) scale(1.02)`. v0.2.0 also
+implements **real drag-and-drop** across three input modes:
+
+- **Mouse / desktop** via HTML5 DnD API — drop-zones tint lime
+  on `dragover`, the active target gets a stronger dashed
+  outline.
+- **Touch / mobile** — long-press (220&#8239;ms) lifts the card
+  into a fixed-position floating clone that follows the finger;
+  release resolves to the column under the finger via
+  `document.elementFromPoint`.
+- **Keyboard / a11y** — `Space` on a focused card lifts;
+  `←/→` move it across columns; `↑/↓` reorder within the
+  column; `Space`/`Enter` drops; `Esc` cancels.
+
+State updates `SPRINTS` in-place; the DOM re-renders and a
+**FLIP** transition (320&#8239;ms `cubic-bezier(0.16,1,0.3,1)`)
+animates the card from its old position to its new one.
+Skipped under `prefers-reduced-motion`.
+
+Limitations: mouse-DnD lands the card at the END of the target
+column (no within-column reorder via mouse). Within-column
+reorder is keyboard-only in v0.2.0.
 
 **Mobile.** Below 720&#8239;px, the three columns become a
 horizontal scroll-snap-x mandatory carousel with one column
@@ -211,6 +230,31 @@ relative to the max:
 Google, Hetzner, Netcup, Stripe.
 
 ---
+
+## v0.2.0 — heartbeat + module choice
+
+These two surfaces span all five modules:
+
+- **Heartbeat.** `requestAnimationFrame` loop tick every
+  2&#8239;s pulses one random agent's status stripe (lime
+  flash, A1+C1 visible), increments one random fork's
+  `spend_today` (E2 amount animates, A1 ribbon stat updates),
+  and rolls a 5% chance of flipping a `running` agent to
+  `stalled` (rose flash on the C1 stripe + an `aria-live=
+  assertive` announcement). Stalls auto-recover after 10s.
+  Pauses on `document.hidden` (battery save).
+- **Module choice.** Default `A1/B3/C1/D1/E2` resolved by
+  `parseModuleChoice()` at boot. URL override:
+  `?modules=A2,B1,C2,D3,E1` — slot letters and variants
+  validated against `MODULE_VARIANTS` allow-list. Sidebar
+  carries a small mono module-tag per item (`A1`, `B3`, …)
+  that flips magenta-on-ink on the active item. The
+  Settings view (sidebar group System → Settings) surfaces
+  the choice with variant pills; clicking a pill swaps the
+  active variant for that slot (UI-only, no persistence).
+  Switching to a non-default variant currently surfaces a
+  toast — only the default variants are implemented in
+  v0.2.0; v0.3.0 will fill in the other 10.
 
 ## Cross-cutting acceptance
 

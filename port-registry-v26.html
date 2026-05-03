@@ -778,6 +778,246 @@ h3 .badge {
 }
 
 /* ==========================================================================
+   v0.2.0 additions — skip-link, toast, help-overlay, DnD states,
+   sidebar module-tags + animated underline, settings view,
+   precision card hover, theater portrait stack
+   ========================================================================== */
+
+/* Skip-link — visually hidden until focused (WCAG 2.4.1) */
+.skip-link {
+  position: fixed;
+  top: 8px; left: 8px;
+  padding: 10px 14px;
+  background: var(--lime);
+  color: var(--ink);
+  font-family: var(--font-mono); font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  z-index: 2000;
+  transform: translateY(-200%);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* Toast region — top-right, slide-in from right, slide-out to right */
+.toast-region {
+  position: fixed;
+  top: 16px; right: 16px;
+  z-index: 1500;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+  max-width: 360px;
+}
+.toast {
+  background: var(--ink-card);
+  color: var(--paper);
+  padding: 12px 16px;
+  font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  border-left: 3px solid var(--lime);
+  pointer-events: auto;
+  animation: toast-in var(--dur-base) var(--ease-out);
+}
+.toast.is-out { animation: toast-out var(--dur-base) var(--ease) forwards; }
+.toast .toast-icon { color: var(--lime); flex: 0 0 18px; }
+.toast.is-warn  { border-left-color: var(--amber); }
+.toast.is-warn  .toast-icon { color: var(--amber); }
+.toast.is-error { border-left-color: var(--rose); }
+.toast.is-error .toast-icon { color: var(--rose); }
+@keyframes toast-in  { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes toast-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+/* Help-overlay — keyboard shortcut cheatsheet */
+.help-overlay {
+  position: fixed; inset: 0;
+  background: rgba(7, 6, 13, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1100;
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.help-overlay.is-open { display: flex; }
+.help-card {
+  background: var(--ink-card);
+  padding: 28px 32px;
+  max-width: 560px; width: 100%;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+}
+.help-card h2 {
+  font-size: 22px; margin: 0 0 18px;
+  display: flex; align-items: center; gap: 12px;
+}
+.help-card .row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--ink-edge);
+  align-items: center;
+}
+.help-card .row:last-child { border-bottom: 0; }
+.help-card .desc { color: var(--paper-mute); font-size: 14px; }
+.kbd {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 12px;
+  font-weight: 600;
+  background: var(--ink-deep);
+  color: var(--paper);
+  padding: 4px 8px;
+  margin: 0 2px;
+  letter-spacing: 0.04em;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+.help-card .help-foot {
+  margin-top: 18px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft);
+}
+
+/* Sidebar — module tag (fork-control items) + animated underline */
+.module-tag {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 11px;
+  background: var(--ink-deep);
+  color: var(--paper-soft);
+  padding: 2px 6px;
+  margin-left: 6px;
+  letter-spacing: 0.04em;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+}
+.nav-item.is-active .module-tag {
+  background: var(--magenta);
+  color: var(--ink);
+  font-weight: 600;
+}
+.nav-item.is-active::after {
+  content: '';
+  position: absolute;
+  left: 32px; right: 12px; bottom: 4px;
+  height: 1px;
+  background: var(--magenta);
+  transform-origin: left center;
+  animation: underline-in var(--dur-base) var(--ease-out) forwards;
+}
+@keyframes underline-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* DnD states for kanban cards */
+.k-card[draggable="true"] { cursor: grab; }
+.k-card.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+.k-card.is-keyboard-grabbed {
+  outline: 2px dashed var(--lime);
+  outline-offset: 4px;
+  background: var(--ink-edge);
+}
+.k-card.is-touch-dragging {
+  position: fixed;
+  z-index: 1100;
+  pointer-events: none;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  transform: rotate(2deg) scale(1.02);
+}
+.k-card-ghost {
+  opacity: 0;
+  pointer-events: none;
+}
+.kanban-list.is-drop-target {
+  background: rgba(198, 251, 80, 0.06);
+  outline: 1px dashed rgba(198, 251, 80, 0.4);
+  outline-offset: -4px;
+}
+.kanban-list.is-drag-over {
+  background: rgba(198, 251, 80, 0.12);
+  outline: 2px dashed var(--lime);
+  outline-offset: -4px;
+}
+/* Precision hover on cards: border-color tint + subtle glow */
+.k-card {
+  border-left: 2px solid transparent;
+  transition: transform var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease),
+              border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+}
+.k-card:hover {
+  border-left-color: var(--lime);
+  box-shadow: 0 0 0 1px rgba(198, 251, 80, 0.18);
+}
+
+/* Heartbeat pulse — agent stripe flashes lime briefly when ticked. */
+.agent.is-heartbeat::before {
+  animation: heartbeat-flash 200ms ease-out;
+}
+@keyframes heartbeat-flash {
+  0%   { background: var(--lime); width: 6px; box-shadow: 0 0 8px var(--lime); }
+  100% { /* return to data-state colour via :not(:active) inheritance */ }
+}
+.spend-amount.is-bumped { animation: amount-bump 320ms ease-out; }
+@keyframes amount-bump {
+  0%   { transform: scale(1); color: var(--paper); }
+  35%  { transform: scale(1.06); color: var(--lime); }
+  100% { transform: scale(1); color: var(--paper); }
+}
+
+/* Settings view */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.setting-card {
+  background: var(--ink-card);
+  padding: 16px 18px;
+  clip-path: polygon(var(--cut-md) 0, 100% 0, 100% calc(100% - var(--cut-md)), calc(100% - var(--cut-md)) 100%, 0 100%, 0 var(--cut-md));
+  display: flex; flex-direction: column; gap: 8px;
+}
+.setting-card .lbl {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper-soft); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.setting-card .val {
+  font-size: 18px; font-weight: 600;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.setting-card .variants {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+}
+.variant-pill {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--ink-deep);
+  color: var(--paper-mute);
+  padding: 4px 8px;
+  letter-spacing: 0.04em;
+  clip-path: polygon(var(--cut-sm) 0, 100% 0, 100% calc(100% - var(--cut-sm)), calc(100% - var(--cut-sm)) 100%, 0 100%, 0 var(--cut-sm));
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.variant-pill:hover { background: var(--ink-edge); color: var(--paper); }
+.variant-pill.is-active {
+  background: var(--lime);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Theater portrait stack — already responsive at 900px, tighter
+   spacing in portrait mobile. */
+@media (max-width: 720px) and (orientation: portrait) {
+  .theater { grid-template-columns: 1fr; gap: 12px; }
+  .stream-card { height: 380px; }
+  .eta-time { font-size: 44px; }
+}
+
+/* ==========================================================================
    prefers-reduced-motion — clamp every animation
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
@@ -791,6 +1031,11 @@ h3 .badge {
   }
   .ribbon-cell.is-now { animation: none !important; }
   .stream-dot { animation: none !important; opacity: 1; }
+  /* v0.2.0: heartbeat / spend-bump should NOT animate under reduced-motion. */
+  .agent.is-heartbeat::before { animation: none !important; }
+  .spend-amount.is-bumped { animation: none !important; }
+  .nav-item.is-active::after { animation: none !important; }
+  .toast { animation: none !important; }
 }
 
 /* Focus rings for keyboard navigation — never remove for accessibility. */
@@ -801,7 +1046,8 @@ h3 .badge {
 </style>
 </head>
 <body>
-<button class="menu-toggle" aria-label="Toggle navigation" id="menuToggle">
+<a class="skip-link" href="#main">Skip to main content</a>
+<button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false" id="menuToggle">
   <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
 </button>
 
@@ -809,7 +1055,7 @@ h3 .badge {
   <!-- ============================================================
        Sidebar — three groups (Registry · Fork Control · System)
        ============================================================ -->
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
     <div class="brand">
       <div class="brand-mark">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
@@ -843,29 +1089,34 @@ h3 .badge {
         Fork Control
         <span class="nav-badge">NEW</span>
       </div>
-      <button class="nav-item is-active" data-view="forks" type="button">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <button class="nav-item is-active" data-view="forks" data-slot="A" type="button" aria-current="page">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         <span class="label">Forks</span>
+        <span class="module-tag" data-tag="A">A1</span>
         <span class="meta">3</span>
       </button>
-      <button class="nav-item" data-view="provisioning" type="button">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      <button class="nav-item" data-view="provisioning" data-slot="B" type="button">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><polygon points="6 3 20 12 6 21 6 3"/></svg>
         <span class="label">Provisioning</span>
+        <span class="module-tag" data-tag="B">B3</span>
         <span class="meta">2</span>
       </button>
-      <button class="nav-item" data-view="agents" type="button">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+      <button class="nav-item" data-view="agents" data-slot="C" type="button">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
         <span class="label">Agents</span>
+        <span class="module-tag" data-tag="C">C1</span>
         <span class="meta">12</span>
       </button>
-      <button class="nav-item" data-view="missions" type="button">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>
+      <button class="nav-item" data-view="missions" data-slot="D" type="button" aria-haspopup="dialog">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>
         <span class="label">Missions</span>
+        <span class="module-tag" data-tag="D">D1</span>
         <span class="meta">70</span>
       </button>
-      <button class="nav-item" data-view="api-keys" type="button">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+      <button class="nav-item" data-view="api-keys" data-slot="E" type="button">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
         <span class="label">API Keys</span>
+        <span class="module-tag" data-tag="E">E2</span>
         <span class="meta">6</span>
       </button>
     </div>
@@ -893,7 +1144,7 @@ h3 .badge {
   <!-- ============================================================
        Main content — five Fork-Control views + placeholders
        ============================================================ -->
-  <main class="content">
+  <main class="content" id="main" tabindex="-1">
     <!-- Forks · A1 Activity Ribbon -->
     <section class="view is-active" id="view-forks" data-view="forks">
       <div class="view-head">
@@ -951,7 +1202,7 @@ h3 .badge {
             <div class="stream-title"><span class="stream-dot"></span>Live · build pipeline</div>
             <div class="stream-meta" id="streamCounter">14 lines</div>
           </div>
-          <div class="stream-feed" id="streamFeed"><!-- rendered --></div>
+          <div class="stream-feed" id="streamFeed" role="log" aria-live="polite" aria-atomic="false" aria-label="Provisioning log feed"><!-- rendered --></div>
         </div>
       </div>
     </section>
@@ -1072,8 +1323,37 @@ h3 .badge {
     <section class="view" id="view-system-settings" data-view="system-settings">
       <div class="view-head">
         <div>
-          <div class="title-row"><h1>Settings</h1><span class="pill"><span class="mono">Placeholder</span></span></div>
-          <p>Tokens, design system, telemetry.</p>
+          <div class="title-row"><h1>Settings</h1><span class="pill"><span class="mono">Module Choice</span></span></div>
+          <p>Active module variant per slot. Click a variant pill to swap (UI-only — not persisted, no localStorage). Override via URL: <span class="kbd">?modules=A2,B1,C2,D3,E1</span></p>
+        </div>
+      </div>
+
+      <div class="settings-grid" id="settingsGrid"><!-- rendered --></div>
+
+      <div class="section-head">
+        <h2>Design tokens</h2>
+        <span class="mono">sign.it 1.0 · WCAG AAA</span>
+      </div>
+      <div class="settings-grid">
+        <div class="setting-card">
+          <span class="lbl">Font · display</span>
+          <span class="val">Inter</span>
+          <span class="mono" style="color: var(--paper-soft);">system-ui fallback</span>
+        </div>
+        <div class="setting-card">
+          <span class="lbl">Font · mono</span>
+          <span class="val">JetBrains Mono</span>
+          <span class="mono" style="color: var(--paper-soft);">ui-monospace fallback</span>
+        </div>
+        <div class="setting-card">
+          <span class="lbl">Body · minimum</span>
+          <span class="val">16 px</span>
+          <span class="mono" style="color: var(--paper-soft);">never smaller</span>
+        </div>
+        <div class="setting-card">
+          <span class="lbl">Contrast floor</span>
+          <span class="val">7.0 : 1</span>
+          <span class="mono" style="color: var(--paper-soft);">WCAG AAA · normal text</span>
         </div>
       </div>
     </section>
@@ -1094,24 +1374,52 @@ h3 .badge {
       Close · Esc
     </button>
   </div>
-  <div class="kanban-board" id="kanbanBoard">
+  <div class="kanban-board" id="kanbanBoard" role="application" aria-label="Mission Kanban — drag cards between columns or use Space + arrow keys">
     <div class="kanban-col" data-col="done">
       <div class="kanban-col-head"><h3><span class="badge">Done</span></h3><span class="count" id="countDone">0</span></div>
-      <div class="kanban-list" data-list="done"></div>
+      <div class="kanban-list" data-list="done" aria-label="Done"></div>
     </div>
     <div class="kanban-col" data-col="now">
       <div class="kanban-col-head"><h3><span class="badge">Now</span></h3><span class="count" id="countNow">0</span></div>
-      <div class="kanban-list" data-list="now"></div>
+      <div class="kanban-list" data-list="now" aria-label="Now"></div>
     </div>
     <div class="kanban-col" data-col="next">
       <div class="kanban-col-head"><h3><span class="badge">Next</span></h3><span class="count" id="countNext">0</span></div>
-      <div class="kanban-list" data-list="next"></div>
+      <div class="kanban-list" data-list="next" aria-label="Next"></div>
     </div>
   </div>
-  <div class="kanban-snap" id="kanbanSnap">
+  <div class="kanban-snap" id="kanbanSnap" aria-hidden="true">
     <div class="snap-dot is-active"></div>
     <div class="snap-dot"></div>
     <div class="snap-dot"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Toast region (aria-live polite) + Help overlay (?-key)
+     + assertive announcer for state changes (heartbeat).
+     ============================================================ -->
+<div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+<div class="visually-hidden" id="srAnnouncer" aria-live="assertive" aria-atomic="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);"></div>
+
+<div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="help-card">
+    <h2 id="helpTitle">
+      <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      Keyboard shortcuts
+    </h2>
+    <div class="row"><span class="desc">Open/close this help</span><span><span class="kbd">?</span></span></div>
+    <div class="row"><span class="desc">Switch view</span><span><span class="kbd">Tab</span> · <span class="kbd">Enter</span></span></div>
+    <div class="row"><span class="desc">Open Mission Kanban</span><span><span class="kbd">⌘⇧K</span> / <span class="kbd">Ctrl⇧K</span></span></div>
+    <div class="row"><span class="desc">Close overlay</span><span><span class="kbd">Esc</span></span></div>
+    <div class="row"><span class="desc">Lift card (keyboard DnD)</span><span><span class="kbd">Space</span> on focused card</span></div>
+    <div class="row"><span class="desc">Move lifted card</span><span><span class="kbd">←</span> <span class="kbd">→</span> column · <span class="kbd">↑</span> <span class="kbd">↓</span> reorder</span></div>
+    <div class="row"><span class="desc">Drop card</span><span><span class="kbd">Space</span> · <span class="kbd">Enter</span></span></div>
+    <div class="row"><span class="desc">Cancel lift</span><span><span class="kbd">Esc</span></span></div>
+    <div class="help-foot">
+      <span>v0.2.0 · drag-drop · aria-live · heartbeat</span>
+      <button class="btn" type="button" id="helpClose">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1121,6 +1429,33 @@ h3 .badge {
      ============================================================ -->
 <script>
 'use strict';
+
+/* =========================================================================
+   v0.2.0 — Drag-and-Drop, aria-live, heartbeat, MODULE_CHOICE.
+   Single-file. No localStorage. No external requests.
+   ========================================================================= */
+
+/* ---------- Module choice (URL ?modules=A2,B1,C2,D3,E1 overrides) --- */
+const MODULE_DEFAULTS = { A: 'A1', B: 'B3', C: 'C1', D: 'D1', E: 'E2' };
+const MODULE_VARIANTS = {
+  A: ['A1', 'A2', 'A3'], B: ['B1', 'B2', 'B3'],
+  C: ['C1', 'C2', 'C3'], D: ['D1', 'D2', 'D3'], E: ['E1', 'E2', 'E3']
+};
+function parseModuleChoice() {
+  const def = { ...MODULE_DEFAULTS };
+  try {
+    const m = new URLSearchParams(window.location.search).get('modules');
+    if (!m) return def;
+    for (const part of m.split(',').map(s => s.trim()).filter(Boolean)) {
+      const slot = part[0] && part[0].toUpperCase();
+      if (slot in def && MODULE_VARIANTS[slot] && MODULE_VARIANTS[slot].includes(part)) {
+        def[slot] = part;
+      }
+    }
+  } catch (e) { /* fall back to defaults */ }
+  return def;
+}
+const MODULE_CHOICE = parseModuleChoice();
 
 /* ---------- Mock data ----------------------------------------------- */
 const FORKS = [
@@ -1346,7 +1681,10 @@ function renderKanban() {
     document.getElementById('count' + col[0].toUpperCase() + col.slice(1)).textContent = items.length;
     list.innerHTML = items.map(s => {
       const meta = (col === 'done') ? `${s.mins} min` : (col === 'now') ? `${s.mins_left} min left` : 'queued';
-      return `<div class="k-card" tabindex="0" role="article">
+      return `<div class="k-card" tabindex="0" role="article" draggable="true"
+                   data-id="${s.id}" data-col="${col}"
+                   aria-label="Sprint ${s.id}, ${s.title}, fork ${s.fork}, in ${col} column. Press Space to lift, arrows to move, Space again to drop."
+                   aria-grabbed="false">
         <span class="k-id">${s.id}</span>
         <span class="k-title">${s.title}</span>
         <div class="k-foot">
@@ -1359,6 +1697,477 @@ function renderKanban() {
   document.getElementById('missionsDone').textContent = SPRINTS.done.length + 17;
   document.getElementById('missionsNow').textContent = SPRINTS.now.length;
   document.getElementById('missionsNext').textContent = SPRINTS.next.length + 35;
+}
+
+/* ---------- Drag and Drop ---------------------------------------------
+   Three input modes:
+     1. Native HTML5 DnD (mouse desktop) — dragstart/dragover/drop
+     2. Touch (mobile) — touchstart long-press lifts, touchmove tracks,
+        touchend resolves to column under finger
+     3. Keyboard — Space lifts focused card, arrows move (←→ column,
+        ↑↓ reorder), Space/Enter drops, Esc cancels.
+   On drop: SPRINTS data updated in-place, DOM reordered, FLIP-style
+   transform animates the move.
+   ---------------------------------------------------------------------- */
+const dragState = {
+  card: null, fromCol: null, fromIndex: -1,
+  touchClone: null, touchOffsetX: 0, touchOffsetY: 0,
+  keyboardLifted: false
+};
+const reduceMotion = () => window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function findSprintIndex(col, id) {
+  return (SPRINTS[col] || []).findIndex(s => s.id === id);
+}
+function moveSprint(fromCol, toCol, id, toIndex) {
+  const fromList = SPRINTS[fromCol];
+  if (!fromList) return false;
+  const idx = fromList.findIndex(s => s.id === id);
+  if (idx < 0) return false;
+  const [item] = fromList.splice(idx, 1);
+  // Adapt fields for target column shape (simple coercion).
+  if (toCol === 'now' && !('mins_left' in item)) item.mins_left = 30;
+  if (toCol === 'done' && !('mins' in item)) item.mins = item.mins_left || 60;
+  const dest = SPRINTS[toCol];
+  if (toIndex == null || toIndex < 0 || toIndex > dest.length) toIndex = dest.length;
+  dest.splice(toIndex, 0, item);
+  return true;
+}
+
+/* FLIP animation — capture rects, mutate, animate from delta to 0. */
+function captureRects(scope) {
+  const map = new Map();
+  scope.querySelectorAll('.k-card').forEach(c => map.set(c.dataset.id, c.getBoundingClientRect()));
+  return map;
+}
+function playFlip(scope, oldRects) {
+  if (reduceMotion()) return;
+  scope.querySelectorAll('.k-card').forEach(c => {
+    const oldR = oldRects.get(c.dataset.id);
+    if (!oldR) return;
+    const newR = c.getBoundingClientRect();
+    const dx = oldR.left - newR.left;
+    const dy = oldR.top - newR.top;
+    if (dx === 0 && dy === 0) return;
+    c.style.transition = 'none';
+    c.style.transform = `translate(${dx}px, ${dy}px)`;
+    requestAnimationFrame(() => {
+      c.style.transition = 'transform 320ms cubic-bezier(0.16, 1, 0.3, 1)';
+      c.style.transform = '';
+      const cleanup = () => {
+        c.style.transition = '';
+        c.removeEventListener('transitionend', cleanup);
+      };
+      c.addEventListener('transitionend', cleanup);
+    });
+  });
+}
+
+function setupDnD() {
+  const board = document.getElementById('kanbanBoard');
+  if (!board) return;
+
+  /* --- HTML5 DnD (mouse / desktop) --- */
+  board.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.k-card');
+    if (!card) return;
+    dragState.card = card;
+    dragState.fromCol = card.dataset.col;
+    dragState.fromIndex = Array.from(card.parentElement.children).indexOf(card);
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', card.dataset.id); } catch (err) { /* IE */ }
+    setTimeout(() => card.classList.add('is-dragging'), 0);
+    document.querySelectorAll('.kanban-list').forEach(l => l.classList.add('is-drop-target'));
+    card.setAttribute('aria-grabbed', 'true');
+  });
+  board.addEventListener('dragend', () => {
+    if (dragState.card) {
+      dragState.card.classList.remove('is-dragging');
+      dragState.card.setAttribute('aria-grabbed', 'false');
+    }
+    document.querySelectorAll('.kanban-list').forEach(l => {
+      l.classList.remove('is-drop-target', 'is-drag-over');
+    });
+    dragState.card = null; dragState.fromCol = null;
+  });
+  board.addEventListener('dragover', (e) => {
+    const list = e.target.closest('.kanban-list');
+    if (!list) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.kanban-list').forEach(l => l.classList.toggle('is-drag-over', l === list));
+  });
+  board.addEventListener('drop', (e) => {
+    const list = e.target.closest('.kanban-list');
+    if (!list || !dragState.card) return;
+    e.preventDefault();
+    const toCol = list.dataset.list;
+    const id = dragState.card.dataset.id;
+    if (toCol !== dragState.fromCol) {
+      const oldRects = captureRects(board);
+      if (moveSprint(dragState.fromCol, toCol, id)) {
+        renderKanban();
+        // Re-attach DnD on the new DOM (renderKanban replaced innerHTML).
+        playFlip(board, oldRects);
+        showToast(`${id} → ${toCol.toUpperCase()}`, 'ok');
+        announceSR(`Sprint ${id} moved from ${dragState.fromCol} to ${toCol}`);
+      }
+    }
+  });
+
+  /* --- Touch (mobile, long-press to lift) --- */
+  let touchTimer = null;
+  board.addEventListener('touchstart', (e) => {
+    const card = e.target.closest('.k-card');
+    if (!card) return;
+    touchTimer = setTimeout(() => {
+      const r = card.getBoundingClientRect();
+      const t = e.touches[0];
+      dragState.card = card;
+      dragState.fromCol = card.dataset.col;
+      dragState.touchOffsetX = t.clientX - r.left;
+      dragState.touchOffsetY = t.clientY - r.top;
+      card.classList.add('is-touch-dragging');
+      card.style.left = (t.clientX - dragState.touchOffsetX) + 'px';
+      card.style.top  = (t.clientY - dragState.touchOffsetY) + 'px';
+      card.style.width = r.width + 'px';
+      document.querySelectorAll('.kanban-list').forEach(l => l.classList.add('is-drop-target'));
+    }, 220);
+  }, { passive: true });
+  board.addEventListener('touchmove', (e) => {
+    if (!dragState.card || !dragState.card.classList.contains('is-touch-dragging')) return;
+    const t = e.touches[0];
+    e.preventDefault();
+    dragState.card.style.left = (t.clientX - dragState.touchOffsetX) + 'px';
+    dragState.card.style.top  = (t.clientY - dragState.touchOffsetY) + 'px';
+    const under = document.elementFromPoint(t.clientX, t.clientY);
+    const list  = under && under.closest('.kanban-list');
+    document.querySelectorAll('.kanban-list').forEach(l => l.classList.toggle('is-drag-over', l === list));
+  }, { passive: false });
+  board.addEventListener('touchend', (e) => {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+    const card = dragState.card;
+    if (!card || !card.classList.contains('is-touch-dragging')) {
+      document.querySelectorAll('.kanban-list').forEach(l => l.classList.remove('is-drop-target', 'is-drag-over'));
+      dragState.card = null; return;
+    }
+    const t = (e.changedTouches && e.changedTouches[0]) || null;
+    const under = t && document.elementFromPoint(t.clientX, t.clientY);
+    const list  = under && under.closest('.kanban-list');
+    card.classList.remove('is-touch-dragging');
+    card.style.left = ''; card.style.top = ''; card.style.width = '';
+    document.querySelectorAll('.kanban-list').forEach(l => l.classList.remove('is-drop-target', 'is-drag-over'));
+    if (list) {
+      const toCol = list.dataset.list;
+      const id = card.dataset.id;
+      const oldRects = captureRects(board);
+      if (toCol !== dragState.fromCol && moveSprint(dragState.fromCol, toCol, id)) {
+        renderKanban();
+        playFlip(board, oldRects);
+        showToast(`${id} → ${toCol.toUpperCase()}`, 'ok');
+        announceSR(`Sprint ${id} moved to ${toCol}`);
+      }
+    }
+    dragState.card = null; dragState.fromCol = null;
+  });
+  board.addEventListener('touchcancel', () => {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+    if (dragState.card) {
+      dragState.card.classList.remove('is-touch-dragging');
+      dragState.card.style.left = ''; dragState.card.style.top = ''; dragState.card.style.width = '';
+    }
+    document.querySelectorAll('.kanban-list').forEach(l => l.classList.remove('is-drop-target', 'is-drag-over'));
+    dragState.card = null; dragState.fromCol = null;
+  });
+
+  /* --- Keyboard DnD: Space lifts, arrows move, Space/Enter drops, Esc cancels --- */
+  board.addEventListener('keydown', (e) => {
+    const card = e.target.closest('.k-card');
+    if (!card) return;
+    if ((e.key === ' ' || e.key === 'Enter') && !dragState.keyboardLifted) {
+      e.preventDefault();
+      dragState.card = card;
+      dragState.fromCol = card.dataset.col;
+      dragState.keyboardLifted = true;
+      card.classList.add('is-keyboard-grabbed');
+      card.setAttribute('aria-grabbed', 'true');
+      announceSR(`Lifted sprint ${card.dataset.id}. Use arrow keys to move, Space to drop, Escape to cancel.`);
+      return;
+    }
+    if (dragState.keyboardLifted && dragState.card === card) {
+      const cols = ['done', 'now', 'next'];
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        card.classList.remove('is-keyboard-grabbed');
+        card.setAttribute('aria-grabbed', 'false');
+        dragState.keyboardLifted = false;
+        dragState.card = null;
+        announceSR('Lift cancelled.');
+        return;
+      }
+      if ((e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault();
+        card.classList.remove('is-keyboard-grabbed');
+        card.setAttribute('aria-grabbed', 'false');
+        dragState.keyboardLifted = false;
+        announceSR(`Dropped sprint ${card.dataset.id} in ${card.dataset.col}.`);
+        showToast(`${card.dataset.id} dropped in ${card.dataset.col.toUpperCase()}`, 'ok');
+        dragState.card = null;
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const fromIdx = cols.indexOf(dragState.fromCol);
+        const dir = e.key === 'ArrowLeft' ? -1 : 1;
+        const toIdx = Math.max(0, Math.min(cols.length - 1, fromIdx + dir));
+        if (toIdx !== fromIdx) {
+          const toCol = cols[toIdx];
+          const oldRects = captureRects(board);
+          if (moveSprint(dragState.fromCol, toCol, card.dataset.id)) {
+            renderKanban();
+            playFlip(board, oldRects);
+            const newCard = board.querySelector(`.k-card[data-id="${card.dataset.id}"]`);
+            if (newCard) {
+              newCard.focus();
+              newCard.classList.add('is-keyboard-grabbed');
+              newCard.setAttribute('aria-grabbed', 'true');
+              dragState.card = newCard;
+              dragState.fromCol = toCol;
+              announceSR(`Moved to ${toCol}.`);
+            }
+          }
+        }
+      }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const list = card.parentElement;
+        const siblings = Array.from(list.children);
+        const here = siblings.indexOf(card);
+        const next = e.key === 'ArrowUp' ? here - 1 : here + 1;
+        if (next < 0 || next >= siblings.length) return;
+        const colName = list.dataset.list;
+        const id = card.dataset.id;
+        // Reorder in SPRINTS array
+        const arr = SPRINTS[colName];
+        const fromI = arr.findIndex(s => s.id === id);
+        if (fromI < 0) return;
+        const [item] = arr.splice(fromI, 1);
+        arr.splice(next, 0, item);
+        const oldRects = captureRects(board);
+        renderKanban();
+        playFlip(board, oldRects);
+        const newCard = board.querySelector(`.k-card[data-id="${id}"]`);
+        if (newCard) {
+          newCard.focus();
+          newCard.classList.add('is-keyboard-grabbed');
+          newCard.setAttribute('aria-grabbed', 'true');
+          dragState.card = newCard;
+        }
+      }
+    }
+  });
+}
+
+/* ---------- Toast notifications ---------------------------------------- */
+function showToast(msg, kind /* 'ok' | 'warn' | 'error' */) {
+  const region = document.getElementById('toastRegion');
+  if (!region) return;
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind === 'warn' ? ' is-warn' : kind === 'error' ? ' is-error' : '');
+  t.setAttribute('role', 'status');
+  const iconPath = kind === 'error'
+    ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+    : kind === 'warn'
+    ? '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+    : '<polyline points="20 6 9 17 4 12"/>';
+  t.innerHTML = `<svg class="toast-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true">${iconPath}</svg><span>${msg}</span>`;
+  region.appendChild(t);
+  setTimeout(() => t.classList.add('is-out'), 2400);
+  setTimeout(() => t.remove(), 2900);
+}
+function announceSR(msg) {
+  const a = document.getElementById('srAnnouncer');
+  if (!a) return;
+  a.textContent = '';
+  // Force reflow so identical messages re-announce.
+  // eslint-disable-next-line no-unused-expressions
+  a.offsetHeight;
+  a.textContent = msg;
+}
+
+/* ---------- Help overlay (?-key) --------------------------------------- */
+function toggleHelp(force /* boolean | undefined */) {
+  const ov = document.getElementById('helpOverlay');
+  if (!ov) return;
+  const open = (typeof force === 'boolean') ? force : !ov.classList.contains('is-open');
+  ov.classList.toggle('is-open', open);
+  if (open) setTimeout(() => document.getElementById('helpClose').focus(), 50);
+}
+
+/* ---------- Focus trap for kanban + help overlays ---------------------- */
+function trapFocus(container, e) {
+  if (e.key !== 'Tab') return;
+  const focusable = container.querySelectorAll(
+    'button, [href], input, [tabindex]:not([tabindex="-1"])'
+  );
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault(); first.focus();
+  }
+}
+
+/* ---------- Settings view (module choice display) ---------------------- */
+function renderSettings() {
+  const grid = document.getElementById('settingsGrid');
+  if (!grid) return;
+  const slots = [
+    { slot: 'A', label: 'Forks · Activity Ribbon' },
+    { slot: 'B', label: 'Provisioning · Stream Theater' },
+    { slot: 'C', label: 'Agents · Status Stripe' },
+    { slot: 'D', label: 'Missions · Kanban' },
+    { slot: 'E', label: 'API Keys · Spend Bars' }
+  ];
+  grid.innerHTML = slots.map(s => {
+    const variants = MODULE_VARIANTS[s.slot] || [];
+    return `
+      <div class="setting-card">
+        <span class="lbl">${s.label}</span>
+        <span class="val">
+          <span class="module-tag" data-tag="${s.slot}" style="background:var(--magenta);color:var(--ink);font-weight:600;">${MODULE_CHOICE[s.slot]}</span>
+        </span>
+        <div class="variants">
+          ${variants.map(v => `
+            <button type="button" class="variant-pill ${v === MODULE_CHOICE[s.slot] ? 'is-active' : ''}"
+                    data-slot="${s.slot}" data-variant="${v}"
+                    aria-pressed="${v === MODULE_CHOICE[s.slot] ? 'true' : 'false'}">${v}</button>
+          `).join('')}
+        </div>
+      </div>`;
+  }).join('');
+  grid.querySelectorAll('.variant-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const slot = btn.dataset.slot;
+      const variant = btn.dataset.variant;
+      MODULE_CHOICE[slot] = variant;
+      // Update sidebar tag
+      const sidebarTag = document.querySelector(`.nav-item[data-slot="${slot}"] .module-tag`);
+      if (sidebarTag) sidebarTag.textContent = variant;
+      renderSettings();
+      const isImplemented = (variant === MODULE_DEFAULTS[slot]);
+      const msg = isImplemented
+        ? `Switched ${slot} → ${variant}`
+        : `${variant} selected · variant not yet implemented (default ${MODULE_DEFAULTS[slot]} renders)`;
+      showToast(msg, isImplemented ? 'ok' : 'warn');
+      announceSR(msg);
+    });
+  });
+}
+
+/* ---------- Heartbeat — agent pulse + spend tick + state changes ------- */
+let heartbeatRafId = null;
+let lastBeatTs = 0;
+const BEAT_INTERVAL_MS = 2000;
+const STATE_CHANGE_PROB = 0.05;     // 5% chance per beat
+const STALL_RECOVERY_MS = 10000;
+const stalledAt = new Map();
+
+function pickAndBeat() {
+  const grid = document.getElementById('agentsGrid');
+  if (!grid) return;
+  const cards = grid.querySelectorAll('.agent');
+  if (!cards.length) return;
+  const idx = Math.floor(Math.random() * cards.length);
+  const card = cards[idx];
+  if (!reduceMotion()) {
+    card.classList.remove('is-heartbeat');
+    void card.offsetWidth; // restart animation
+    card.classList.add('is-heartbeat');
+    setTimeout(() => card.classList.remove('is-heartbeat'), 240);
+  }
+}
+function bumpSpend() {
+  const idx = Math.floor(Math.random() * FORKS.length);
+  const fork = FORKS[idx];
+  const inc = Math.round(Math.random() * 8 + 1) / 100; // $0.01..$0.09
+  fork.spend_today = Math.round((fork.spend_today + inc) * 100) / 100;
+  // Update ribbon stats live (only if Forks view rendered).
+  const stats = document.querySelector(`.ribbon[data-fork="${fork.id}"] .ribbon-stats`);
+  if (stats) {
+    const amount = stats.querySelector('strong + span') || stats.querySelectorAll('strong')[1];
+    // Simpler: re-render the inner of stats (spend strong is the second).
+    stats.innerHTML = `
+      <span><strong>${fork.agents}</strong> agents</span>
+      <span>$<strong>${fork.spend_today.toFixed(2)}</strong> today</span>
+      ${fork.hours_idle > 0 ? `<span style="color:var(--amber);"><strong>${fork.hours_idle}h</strong> idle</span>` : ''}
+      ${fork.status === 'stalled' ? `<span style="color:var(--rose);"><strong>1</strong> stalled</span>` : ''}
+    `;
+  }
+  // Update spend bars view if active.
+  const board = document.getElementById('spendBoard');
+  if (board && document.querySelector('.view.is-active[data-view="api-keys"]')) {
+    const row = board.querySelectorAll('.spend-row')[
+      [...FORKS].sort((a,b) => b.spend_today - a.spend_today).findIndex(f => f.id === fork.id)
+    ];
+    if (row) {
+      const amt = row.querySelector('.spend-amount');
+      if (amt) {
+        amt.textContent = '$' + fork.spend_today.toFixed(2);
+        amt.classList.remove('is-bumped');
+        void amt.offsetWidth;
+        amt.classList.add('is-bumped');
+      }
+    }
+  }
+}
+function maybeChangeState() {
+  if (Math.random() > STATE_CHANGE_PROB) return;
+  const candidates = AGENTS.filter(a => a.state === 'running');
+  if (!candidates.length) return;
+  const a = candidates[Math.floor(Math.random() * candidates.length)];
+  a.state = 'stalled';
+  stalledAt.set(a.id, performance.now());
+  const card = document.querySelector(`.agent[data-fork="${a.fork}"][data-state="running"]`);
+  // Re-render agents view if active to reflect new state colour.
+  if (document.querySelector('.view.is-active[data-view="agents"]')) renderAgents();
+  showToast(`${a.name} stalled — escalating`, 'warn');
+  announceSR(`Agent ${a.name} stalled`);
+}
+function recoverStalls(now) {
+  for (const [id, t0] of stalledAt) {
+    if (now - t0 < STALL_RECOVERY_MS) continue;
+    const a = AGENTS.find(x => x.id === id);
+    if (a && a.state === 'stalled') {
+      a.state = 'running';
+      stalledAt.delete(id);
+      if (document.querySelector('.view.is-active[data-view="agents"]')) renderAgents();
+      showToast(`${a.name} recovered`, 'ok');
+      announceSR(`Agent ${a.name} recovered`);
+    }
+  }
+}
+function heartbeatTick(ts) {
+  if (document.hidden) { heartbeatRafId = null; return; }
+  if (ts - lastBeatTs >= BEAT_INTERVAL_MS) {
+    pickAndBeat();
+    bumpSpend();
+    maybeChangeState();
+    recoverStalls(ts);
+    lastBeatTs = ts;
+  }
+  heartbeatRafId = requestAnimationFrame(heartbeatTick);
+}
+function startHeartbeat() {
+  if (heartbeatRafId || document.hidden) return;
+  lastBeatTs = performance.now();
+  heartbeatRafId = requestAnimationFrame(heartbeatTick);
+}
+function stopHeartbeat() {
+  if (heartbeatRafId) { cancelAnimationFrame(heartbeatRafId); heartbeatRafId = null; }
 }
 
 function openKanban() {
@@ -1432,11 +2241,23 @@ function activateView(name) {
 }
 
 /* ---------- Boot ---------------------------------------------------- */
+function initSidebarModuleTags() {
+  // Apply the resolved MODULE_CHOICE to sidebar tags (URL override may
+  // have changed defaults).
+  document.querySelectorAll('.nav-item .module-tag').forEach(tag => {
+    const slot = tag.dataset.tag;
+    if (slot in MODULE_CHOICE) tag.textContent = MODULE_CHOICE[slot];
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  initSidebarModuleTags();
   renderActivityBoard();
   renderAgents();
   renderKanban();
   renderSpend();
+  renderSettings();
+  setupDnD();
 
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => activateView(btn.dataset.view));
@@ -1448,21 +2269,44 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeBtn = document.getElementById('kanbanClose');
   if (closeBtn) closeBtn.addEventListener('click', closeKanban);
 
+  const helpClose = document.getElementById('helpClose');
+  if (helpClose) helpClose.addEventListener('click', () => toggleHelp(false));
+
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('kanbanOverlay').classList.contains('is-open')) {
-      closeKanban();
+    const kanbanOpen = document.getElementById('kanbanOverlay').classList.contains('is-open');
+    const helpOpen = document.getElementById('helpOverlay').classList.contains('is-open');
+
+    // Esc — close any open overlay (priority: help > kanban).
+    if (e.key === 'Escape') {
+      if (helpOpen)  { toggleHelp(false); return; }
+      if (kanbanOpen){ closeKanban(); return; }
     }
-    if (e.key === 'k' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+    // ? — toggle help.
+    if (e.key === '?' && !helpOpen) {
+      e.preventDefault();
+      toggleHelp(true);
+      return;
+    }
+    // ⌘⇧K / Ctrl⇧K — open kanban.
+    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey) && e.shiftKey) {
       e.preventDefault();
       activateView('missions');
       openKanban();
+      return;
     }
+    // Focus trap when an overlay is open.
+    if (helpOpen)   trapFocus(document.getElementById('helpOverlay'),   e);
+    if (kanbanOpen) trapFocus(document.getElementById('kanbanOverlay'), e);
   });
 
-  // Click outside the columns to close kanban (but not when clicking columns themselves).
-  const overlay = document.getElementById('kanbanOverlay');
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeKanban();
+  // Backdrop close.
+  const kanbanOverlay = document.getElementById('kanbanOverlay');
+  kanbanOverlay.addEventListener('click', (e) => {
+    if (e.target === kanbanOverlay) closeKanban();
+  });
+  const helpOverlay = document.getElementById('helpOverlay');
+  helpOverlay.addEventListener('click', (e) => {
+    if (e.target === helpOverlay) toggleHelp(false);
   });
 
   // Mobile snap-dot indicator follows scroll.
@@ -1478,11 +2322,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Mobile menu toggle.
   const toggle = document.getElementById('menuToggle');
   if (toggle) toggle.addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('is-open');
+    const sidebar = document.getElementById('sidebar');
+    const open = sidebar.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 
-  // Initial spend animation if api-keys is the boot view (it's not by default).
+  // Heartbeat — start once, pause on visibility-change.
+  startHeartbeat();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopHeartbeat();
+    else startHeartbeat();
+  });
+
+  // Initial spend animation if api-keys is the boot view (not by default).
   if (document.querySelector('.view.is-active[data-view="api-keys"]')) animateSpendBars();
+
+  // Audit-trail breadcrumb in console for the operator.
+  // Don't log MODULE_CHOICE values that include user-supplied strings as-is —
+  // values are already validated against MODULE_VARIANTS allow-list.
+  console.info('[port-registry v26 v0.2.0]',
+    'modules=', MODULE_CHOICE,
+    'reducedMotion=', reduceMotion());
 });
 </script>
 </body>

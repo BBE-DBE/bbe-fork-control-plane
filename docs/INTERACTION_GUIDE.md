@@ -76,7 +76,12 @@ edge).
 |---|---|---|---|
 | Click `#openKanban` OR `⌘⇧K` | `.kanban-overlay` | `.is-open` toggles, body scroll locked, `kanban-close` focused | instant (no fade) |
 | Click `.kanban-close` OR `Esc` OR backdrop click | `.kanban-overlay` | Removes `.is-open`, restores body scroll | instant |
-| `:hover` on `.k-card` | `background` to `#1A1727` | Card lift | `220ms ease` |
+| `:hover` on `.k-card` | `border-left-color`, `box-shadow` (v0.2.0) | Lime border + subtle 1px glow | `120ms ease` |
+| Drag start (mouse, v0.2.0) | `.k-card.is-dragging`, every `.kanban-list.is-drop-target` | Source card 0.45 opacity, all columns get a dashed lime outline | instant |
+| Drag over a column (mouse / touch, v0.2.0) | `.kanban-list.is-drag-over` | Stronger lime tint background + thicker dashed outline | `120ms ease` |
+| Touch lift (touchstart + 220ms hold, v0.2.0) | `.k-card.is-touch-dragging` | Card becomes fixed-position clone tracking the finger | instant |
+| Keyboard lift (Space on focused card, v0.2.0) | `.k-card.is-keyboard-grabbed` | Lime dashed outline + ink-edge background; `aria-grabbed=true`; `srAnnouncer` says "Lifted sprint X" | instant |
+| Drop (any path, v0.2.0) | `SPRINTS` array + DOM | Re-render + **FLIP** animation: every moved card transitions from old → new position | `320ms cubic-bezier(0.16, 1, 0.3, 1)` |
 | `:active` on `.k-card` | `transform: rotate(2deg) scale(1.02)`, `cursor: grabbing` | Drag-feel for tactile feedback | instant |
 | Mobile horizontal scroll | `.snap-dot` | Active dot becomes magenta + `transform: scaleX(2.4)` | `120ms ease` |
 
@@ -106,10 +111,16 @@ triggers (semantic, not motion).
 
 | Key | Effect |
 |---|---|
-| `Tab` / `Shift+Tab` | Standard focus traversal. All buttons + cards are tabbable. |
-| `Esc` | Close kanban overlay if open; otherwise no-op. |
+| `Tab` / `Shift+Tab` | Standard focus traversal. Skip-link → menu-toggle → sidebar → main. Focus-trapped within open overlays. |
+| `Esc` | Close help overlay (priority) → close kanban overlay → cancel keyboard-DnD lift. |
+| `?` | Toggle the keyboard-shortcuts help overlay. v0.2.0+. |
 | `⌘⇧K` / `Ctrl⇧K` | Switch to Missions view AND open the kanban overlay. |
-| `Enter` / `Space` on focused `.nav-item` | Activate view (HTML button default behaviour). |
+| `Enter` / `Space` on focused `.nav-item` | Activate view (HTML button default). |
+| `Space` on focused `.k-card` (v0.2.0) | Lift the card for keyboard-DnD; `aria-grabbed=true`. |
+| `←` / `→` while a card is keyboard-lifted | Move the card across columns (Done ↔ Now ↔ Next). |
+| `↑` / `↓` while a card is keyboard-lifted | Reorder the card within its current column. |
+| `Space` / `Enter` while a card is keyboard-lifted | Drop the card; toast confirms; `srAnnouncer` reads "Dropped sprint X in column Y". |
+| `Esc` while a card is keyboard-lifted | Cancel the lift; card returns to its original position. |
 
 ---
 
@@ -123,6 +134,37 @@ triggers (semantic, not motion).
 | Horizontal scroll on `.kanban-board` | `scroll-snap-type: x mandatory` snaps to one column at a time; `.snap-dot` indicator updates. |
 
 ---
+
+## v0.2.0 — heartbeat ticker
+
+| Trigger | Target | Effect | Timing |
+|---|---|---|---|
+| `requestAnimationFrame` loop, every 2&#8239;s, while `!document.hidden` | `.agent.is-heartbeat::before` | Status stripe flashes lime + 8&#8239;px width burst + box-shadow halo | `200ms ease-out` |
+| Same loop | `.spend-amount.is-bumped` (in API Keys view) | Number scales 1 → 1.06 → 1, colour briefly lime | `320ms ease-out` |
+| Same loop, 5% chance | One random `running` agent | State flips to `stalled`, stripe colour changes, toast (warn) emits, `srAnnouncer` announces | instant + toast 2.4s + 0.5s out |
+| Same loop, 10s after a stall | The stalled agent | State returns to `running`, toast (ok) emits, announcement | instant + toast |
+| `visibilitychange` to `hidden` | The whole loop | `cancelAnimationFrame`; ticker pauses (battery save) | instant |
+| `visibilitychange` to `visible` | Resumes via `requestAnimationFrame(heartbeatTick)` | First tick happens within one frame | instant |
+
+**Reduced motion:** the lime flash, width burst, halo, and
+amount-bump all clamp to no animation. The state changes
+(stall/recover) still apply because they're *information*, not
+*motion* — but the visual transition is replaced with a static
+re-render of the affected card (`renderAgents()`).
+
+## v0.2.0 — toast + help-overlay
+
+| Trigger | Target | Effect | Timing |
+|---|---|---|---|
+| Drop confirmation (DnD) | A new `.toast` in `#toastRegion` | Slide-in from right, dismiss after 2.4s, slide-out to right | `220ms ease-out` in, `220ms ease` out |
+| Stalled / recovered agent | A new `.toast.is-warn` or `.toast` (ok) | Same slide-in pattern, lime / amber border | same |
+| Variant pill click on Settings | A `.toast` (ok or warn depending on whether the variant is implemented) | Same | same |
+| `?` keypress (when no input focused) | `#helpOverlay` | `is-open` toggles; first focusable element receives focus | instant |
+| Backdrop click on help / kanban | The respective overlay | Closes | instant |
+
+**Reduced motion:** toasts appear/disappear instantly (no
+slide). The overlay backdrop blur stays — `backdrop-filter` is
+not a motion property, just a visual effect.
 
 ## When to add a new animation
 
